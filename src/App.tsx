@@ -13,6 +13,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return !!sessionStorage.getItem('dashboard_token');
   });
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const [tab, setTab] = useState<Tab>('overview');
   const [repos, setRepos] = useState<RepoStatus[]>([]);
@@ -21,6 +22,25 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
+
+  // Handle OAuth redirect parameters on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    const sessionId = params.get('session');
+    const errorParam = params.get('auth_error');
+
+    if (sessionId) {
+      sessionStorage.setItem('dashboard_token', sessionId);
+      // Strip session param from URL so it doesn't linger in browser history
+      history.replaceState(null, '', window.location.pathname);
+      setIsAuthenticated(true);
+      setAuthError(null);
+    } else if (errorParam) {
+      history.replaceState(null, '', window.location.pathname);
+      setAuthError(errorParam);
+    }
+  }, []);
 
   const loadData = async () => {
     try {
@@ -62,12 +82,25 @@ export default function App() {
   }, [isAuthenticated]);
 
   if (!isAuthenticated) {
-    return <LoginScreen onAuthenticate={() => setIsAuthenticated(true)} />;
+    return <LoginScreen onAuthenticate={() => setIsAuthenticated(true)} authError={authError} />;
   }
 
   const handleRefresh = async () => {
     await invalidateCache();
     await loadData();
+  };
+
+  const handleLogout = async () => {
+    // Fire-and-forget server-side session deletion
+    const token = sessionStorage.getItem('dashboard_token');
+    if (token) {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      }).catch(() => {}); // ignore errors — local clear is what matters
+    }
+    sessionStorage.removeItem('dashboard_token');
+    setIsAuthenticated(false);
   };
 
   return (
@@ -77,10 +110,7 @@ export default function App() {
         onTabChange={setTab}
         onRefresh={handleRefresh}
         lastUpdated={lastUpdated}
-        onLogout={() => {
-          sessionStorage.removeItem('dashboard_token');
-          setIsAuthenticated(false);
-        }}
+        onLogout={handleLogout}
       />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
