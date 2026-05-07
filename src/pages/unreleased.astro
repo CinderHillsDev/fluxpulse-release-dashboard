@@ -5,9 +5,10 @@ import Navbar from '@/components/Navbar.astro';
 import UnreleasedList from '@/components/UnreleasedList.astro';
 import { cacheStatus } from '@/lib/github';
 
-const token = env.GITHUB_TOKEN;
+const typedEnv = env as Env;
+const token = typedEnv.GITHUB_TOKEN;
 
-const repos = await cacheStatus(env, token);
+const repos = await cacheStatus(typedEnv, token);
 const now = new Date().toLocaleString();
 ---
 

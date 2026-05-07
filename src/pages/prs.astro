@@ -5,9 +5,10 @@ import Navbar from '@/components/Navbar.astro';
 import PrTable from '@/components/PrTable.astro';
 import { cachePRs } from '@/lib/github';
 
-const token = env.GITHUB_TOKEN;
+const typedEnv = env as Env;
+const token = typedEnv.GITHUB_TOKEN;
 
-const prs = await cachePRs(env, token);
+const prs = await cachePRs(typedEnv, token);
 const now = new Date().toLocaleString();
 ---
 

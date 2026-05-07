@@ -3,7 +3,6 @@ import type {
   RepoStatus,
   DeployInfo,
   PR,
-  UnreleasedCommit,
 } from '@/types';
 
 const GH_API = 'https://api.github.com';
@@ -183,17 +182,16 @@ function determineSyncState(
 export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
   const results = await Promise.allSettled(
     REPOS.map(async (repo) => {
-      const [latestTag, uatDeploy, prodDeploy, openPRCount, unreleasedCount, ciPassing] =
+      const [latestTag, uatDeploy, prodDeploy, openPrCount, ciPassing] =
         await Promise.all([
           fetchLatestTag(token, repo),
           fetchDeployRun(token, repo, 'deploy-uat.yml'),
           fetchDeployRun(token, repo, 'deploy-prod.yml'),
           fetchOpenPRCount(token, repo),
-          0, // placeholder, updated below after latestTag
           checkCIStatus(token, repo),
         ]);
 
-      const unreleased = await fetchUnreleasedCommits(token, repo, latestTag);
+      const unreleasedCommits = await fetchUnreleasedCommits(token, repo, latestTag);
 
       const syncState = determineSyncState(latestTag, uatDeploy, prodDeploy);
 
@@ -203,8 +201,8 @@ export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
         uatDeploy,
         prodDeploy,
         syncState,
-        openPRCount,
-        unreleasedCommits: unreleased,
+        openPrCount,
+        unreleasedCommits,
         ciFailing: !ciPassing,
       };
     })

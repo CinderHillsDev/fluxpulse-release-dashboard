@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, cookies, locals }) => {
+export const POST: APIRoute = async ({ cookies, locals }) => {
   const sessionId = cookies.get('dashboard_session')?.value;
 
   if (sessionId) {
