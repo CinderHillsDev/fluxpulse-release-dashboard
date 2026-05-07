@@ -2,15 +2,7 @@ name = "fluxpulse-release-dashboard"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "dist"
 
-[env.production]
-  # KV namespace for caching GitHub API responses and storing sessions
-  [[env.production.kv_namespaces]]
-  binding = "CACHE"
-  id = "def329c1a0dd405faa372c5486d72af6"
-  preview_id = "def329c1a0dd405faa372c5486d72af6"
-
-  # Secrets managed via `wrangler secret put` (NEVER commit values):
-  #
-  #   GITHUB_TOKEN          — fine-grained PAT; needs read:org + repo:read + actions:write
-  #   GITHUB_CLIENT_ID      — from GitHub OAuth App settings (safe to show in URLs)
-  #   GITHUB_CLIENT_SECRET  — from GitHub OAuth App settings (sensitive, never commit)
+# Secrets managed via `wrangler secret put`:
+#   GITHUB_TOKEN          — fine-grained PAT
+#   GITHUB_CLIENT_ID      — from GitHub OAuth App settings
+#   GITHUB_CLIENT_SECRET  — from GitHub OAuth App settings
