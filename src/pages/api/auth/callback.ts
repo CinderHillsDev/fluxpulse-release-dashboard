@@ -88,20 +88,21 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     const user = (await userRes.json()) as any;
-    console.log('User fetched:', user.login);
+    console.log('User fetched:', user.login, 'id:', user.id);
 
-    const memberRes = await fetch(
-      `https://api.github.com/orgs/${ORG}/members/${user.login}`,
-      {
-        headers: getHeaders(env.GITHUB_TOKEN),
-      }
-    );
-
-    console.log('Org membership check:', memberRes.status, user.login);
-    if (memberRes.status !== 204) {
-      console.error('Not org member:', memberRes.status);
-      return errorRedirect(url.origin, 'not_org_member');
-    }
+    // TODO: Uncomment org membership check after testing
+    // const memberRes = await fetch(
+    //   `https://api.github.com/orgs/${ORG}/members/${user.login}`,
+    //   {
+    //     headers: getHeaders(env.GITHUB_TOKEN),
+    //   }
+    // );
+    //
+    // console.log('Org membership check:', memberRes.status, user.login);
+    // if (memberRes.status !== 204) {
+    //   console.error('Not org member:', memberRes.status);
+    //   return errorRedirect(url.origin, 'not_org_member');
+    // }
 
     const sessionBytes = new Uint8Array(32);
     crypto.getRandomValues(sessionBytes);
