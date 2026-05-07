@@ -1,5 +1,4 @@
 import { defineMiddleware } from 'astro:middleware';
-import { env } from 'cloudflare:workers';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const isAuthRoute = context.url.pathname.startsWith('/api/auth/');
@@ -11,6 +10,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const sessionId = context.cookies.get('dashboard_session')?.value;
 
   if (!sessionId) {
+    return context.redirect('/api/auth/login');
+  }
+
+  const env = (context.locals as any).runtime?.env;
+  if (!env?.CACHE) {
     return context.redirect('/api/auth/login');
   }
 
