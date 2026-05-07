@@ -6,3 +6,8 @@ pages_build_output_dir = "dist"
 #   GITHUB_TOKEN          — fine-grained PAT
 #   GITHUB_CLIENT_ID      — from GitHub OAuth App settings
 #   GITHUB_CLIENT_SECRET  — from GitHub OAuth App settings
+
+[env.production]
+kv_namespaces = [
+  { binding = "APP_KV", id = "your_kv_namespace_id_here" }
+]

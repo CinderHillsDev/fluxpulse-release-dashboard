@@ -14,18 +14,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const env = (context.locals as any).runtime?.env;
-  if (!env?.CACHE) {
+  if (!env?.APP_KV) {
     return context.redirect('/api/auth/login');
   }
 
-  const raw = await env.CACHE.get(`session:${sessionId}`);
-
-  if (!raw) {
-    context.cookies.delete('dashboard_session');
+  const sessionData = await env.APP_KV.get(`session:${sessionId}`);
+  if (!sessionData) {
     return context.redirect('/api/auth/login');
   }
 
-  context.locals.session = JSON.parse(raw);
+  context.locals.session = JSON.parse(sessionData);
   context.locals.sessionId = sessionId;
 
   return next();

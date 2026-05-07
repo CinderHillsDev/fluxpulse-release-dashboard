@@ -4,20 +4,20 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env;
-  if (!env?.CACHE) {
-    return new Response('KV binding not available', { status: 500 });
+  if (!env?.GITHUB_CLIENT_ID || !env?.APP_KV) {
+    return new Response('Configuration error', { status: 500 });
   }
 
-  const origin = new URL(request.url).origin;
-  const redirectUri = `${origin}/api/auth/callback`;
-
-  const stateBytes = new Uint8Array(16);
+  const stateBytes = new Uint8Array(32);
   crypto.getRandomValues(stateBytes);
   const state = Array.from(stateBytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-  await env.CACHE.put(`oauth_state:${state}`, '1', { expirationTtl: 600 });
+  await env.APP_KV.put(`oauth_state:${state}`, '1', { expirationTtl: 600 });
+
+  const origin = new URL(request.url).origin;
+  const redirectUri = `${origin}/api/auth/callback`;
 
   const params = new URLSearchParams({
     client_id: env.GITHUB_CLIENT_ID,

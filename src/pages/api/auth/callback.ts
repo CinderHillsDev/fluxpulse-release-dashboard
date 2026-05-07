@@ -19,29 +19,28 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env;
-  if (!env) {
-    return errorRedirect(new URL(request.url).origin, 'env_not_available');
+  if (!env?.GITHUB_CLIENT_ID || !env?.GITHUB_CLIENT_SECRET || !env?.GITHUB_TOKEN || !env?.APP_KV) {
+    return errorRedirect(new URL(request.url).origin, 'env_not_configured');
   }
 
   const url = new URL(request.url);
-
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
+
+  if (!code) {
+    return errorRedirect(url.origin, 'missing_code');
+  }
 
   if (!state) {
     return errorRedirect(url.origin, 'missing_state');
   }
 
-  const storedState = await env.CACHE.get(`oauth_state:${state}`);
-  if (!storedState) {
+  const stateValid = await env.APP_KV.get(`oauth_state:${state}`);
+  if (!stateValid) {
     return errorRedirect(url.origin, 'invalid_state');
   }
 
-  await env.CACHE.delete(`oauth_state:${state}`);
-
-  if (!code) {
-    return errorRedirect(url.origin, 'missing_code');
-  }
+  await env.APP_KV.delete(`oauth_state:${state}`);
 
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
@@ -91,15 +90,15 @@ export const GET: APIRoute = async ({ request, locals }) => {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-  await env.CACHE.put(
-    `session:${sessionId}`,
-    JSON.stringify({
-      githubLogin: user.login,
-      githubId: user.id,
-      createdAt: Date.now(),
-    }),
-    { expirationTtl: SESSION_TTL }
-  );
+  const sessionData = {
+    githubLogin: user.login,
+    githubId: user.id,
+    createdAt: Date.now(),
+  };
+
+  await env.APP_KV.put(`session:${sessionId}`, JSON.stringify(sessionData), {
+    expirationTtl: SESSION_TTL,
+  });
 
   const cookieVal = `dashboard_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL}`;
 

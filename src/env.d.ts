@@ -15,7 +15,7 @@ declare namespace App {
 }
 
 interface Env {
-  CACHE: KVNamespace;
+  APP_KV: KVNamespace;
   GITHUB_TOKEN: string;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;

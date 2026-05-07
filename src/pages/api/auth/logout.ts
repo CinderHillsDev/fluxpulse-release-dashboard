@@ -3,12 +3,13 @@ import type { APIRoute } from 'astro';
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request, cookies, locals }) => {
-  const env = (locals as any).runtime?.env;
-
   const sessionId = cookies.get('dashboard_session')?.value;
 
-  if (sessionId && env?.CACHE) {
-    await env.CACHE.delete(`session:${sessionId}`);
+  if (sessionId) {
+    const env = (locals as any).runtime?.env;
+    if (env?.APP_KV) {
+      await env.APP_KV.delete(`session:${sessionId}`);
+    }
   }
 
   cookies.delete('dashboard_session');
