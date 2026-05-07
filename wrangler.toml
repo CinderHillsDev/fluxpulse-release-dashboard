@@ -1,11 +1,30 @@
 name = "fluxpulse-release-dashboard"
 compatibility_date = "2024-09-23"
-pages_build_output_dir = "dist"
+compatibility_flags = ["nodejs_compat"]
 
-# Secrets managed via `wrangler secret put`:
-#   GITHUB_TOKEN          — fine-grained PAT
-#   GITHUB_CLIENT_ID      — from GitHub OAuth App settings
-#   GITHUB_CLIENT_SECRET  — from GitHub OAuth App settings
-#
-# Astro's @astrojs/cloudflare adapter auto-manages the SESSION KV binding
-# for OAuth state tokens and session storage. No manual KV config needed.
+# `main` intentionally OMITTED — adapter emits it into dist/server/wrangler.json.
+# Keeping it here causes a chicken-and-egg failure on clean builds.
+
+[assets]
+directory = "./dist/client"
+binding = "ASSETS"
+
+# TOP-LEVEL binding — hasSessionBinding check in adapter reads this level only.
+# With a real id here, adapter does NOT inject a no-id SESSION binding.
+[[kv_namespaces]]
+binding = "SESSION"
+id = "b2103fc8109d4376a8ffcd255d1319d0"
+preview_id = "b2103fc8109d4376a8ffcd255d1319d0"
+
+[env.production]
+account_id = "3e9a9a6915748025fc2f087f981f7476"
+routes = [
+  { pattern = "release-dashboard.fluxpulse.app/*", zone_name = "fluxpulse.app" }
+]
+
+[[env.production.kv_namespaces]]
+binding = "SESSION"
+id = "32c07f5351f44286949b5363d39f1846"
+
+# Secrets — set via: wrangler secret put <NAME> --env production
+#   GITHUB_TOKEN, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
