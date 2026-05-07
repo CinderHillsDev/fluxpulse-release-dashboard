@@ -1,14 +1,33 @@
 name = "fluxpulse-release-dashboard"
 compatibility_date = "2024-09-23"
-pages_build_output_dir = "dist"
 
-# Secrets managed via `wrangler secret put`:
-#   GITHUB_TOKEN          — fine-grained PAT
-#   GITHUB_CLIENT_ID      — from GitHub OAuth App settings
-#   GITHUB_CLIENT_SECRET  — from GitHub OAuth App settings
+# @astrojs/cloudflare adapter generates dist/server/entry.mjs (worker entry)
+# and dist/server/wrangler.json (merged config). Omit `main` here to avoid
+# chicken-and-egg build failure; deploy passes --main ./dist/server/entry.mjs.
+
+[assets]
+directory = "./dist/client"
+binding = "ASSETS"
 
 # Custom KV namespace for OAuth state and sessions
 [[kv_namespaces]]
 binding = "APP_KV"
 id = "32c07f5351f44286949b5363d39f1846"
 preview_id = "b2103fc8109d4376a8ffcd255d1319d0"
+
+# Secrets managed via `wrangler secret put`:
+#   GITHUB_TOKEN          — fine-grained PAT
+#   GITHUB_CLIENT_ID      — from GitHub OAuth App settings
+#   GITHUB_CLIENT_SECRET  — from GitHub OAuth App settings
+
+[env.production]
+account_id = ""  # TODO: fill with Cloudflare account ID
+routes = [
+  { pattern = "release-dashboard.fluxpulse.app/*", zone_name = "fluxpulse.app" }
+]
+
+[env.uat]
+account_id = ""  # TODO: fill with Cloudflare account ID
+routes = [
+  { pattern = "release-dashboard.fluxpulse.dev/*", zone_name = "fluxpulse.dev" }
+]

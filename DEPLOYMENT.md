@@ -2,40 +2,46 @@
 
 ## Prerequisites
 
-- Cloudflare account with Pages project set up
+- Cloudflare account with Workers enabled
 - `wrangler` CLI installed and authenticated (`wrangler auth`)
-- GitHub OAuth App configured with proper secrets
+- GitHub OAuth App configured
+- Cloudflare API token (for CI/CD deployments)
 
 ## Setting Up KV Namespaces
 
-The dashboard requires a KV namespace for OAuth state tokens and session storage. Follow these steps:
+The dashboard requires a KV namespace for OAuth state tokens and session storage.
 
-### 1. Create KV Namespaces
+KV namespaces are already created (IDs in `wrangler.toml`). If you need to recreate them:
 
 ```bash
-# Create production namespace
-wrangler kv:namespace create "fluxpulse-dashboard-kv" --preview false
-
-# Create preview namespace (for staging/development)
-wrangler kv:namespace create "fluxpulse-dashboard-kv" --preview
+wrangler kv:namespace create fluxpulse-dashboard-kv
+wrangler kv:namespace create fluxpulse-dashboard-kv --preview
 ```
 
-Each command will output a namespace ID. Save both.
+## Configuration
 
-### 2. Update wrangler.toml
+### 1. Set Cloudflare Account ID
 
-Replace the placeholder IDs in `wrangler.toml`:
+Update `wrangler.toml` with your Cloudflare account ID:
 
 ```toml
-[[kv_namespaces]]
-binding = "APP_KV"
-id = "YOUR_PRODUCTION_NAMESPACE_ID"
-preview_id = "YOUR_PREVIEW_NAMESPACE_ID"
+[env.production]
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
 ```
 
-### 3. Set Secrets
+Find your account ID at: https://dash.cloudflare.com/
 
-Store GitHub OAuth credentials as Cloudflare secrets:
+### 2. Set DNS Routes (optional)
+
+If deploying to a custom domain, update the `routes` in `wrangler.toml`:
+
+```toml
+routes = [
+  { pattern = "release-dashboard.YOUR_DOMAIN/*", zone_name = "YOUR_DOMAIN" }
+]
+```
+
+### 3. Set GitHub Secrets
 
 ```bash
 wrangler secret put GITHUB_CLIENT_ID --env production
@@ -43,26 +49,32 @@ wrangler secret put GITHUB_CLIENT_SECRET --env production
 wrangler secret put GITHUB_TOKEN --env production
 ```
 
-When prompted, enter the values from your GitHub OAuth App and Personal Access Token.
+When prompted, enter values from your GitHub OAuth App and Personal Access Token.
 
 ## Deploying
 
+### Manual Deploy
+
 ```bash
-git push  # Commits must be pushed to trigger Pages deployment
+npm run deploy  # Builds and deploys to production
 ```
 
-Cloudflare Pages will automatically deploy when you push to your main branch (if connected).
-
-Alternatively, manually deploy:
+Or with explicit environment:
 
 ```bash
 npm run build
-wrangler pages deploy dist --project-name fluxpulse-release-dashboard
+wrangler deploy --main ./dist/server/entry.mjs --env production
+```
+
+### Local Preview
+
+```bash
+npm run preview  # Starts local Wrangler dev server
 ```
 
 ## Verifying Deployment
 
-1. Navigate to your Pages project URL
+1. Navigate to your Worker's URL
 2. You should be redirected to `/api/auth/login`
 3. Click "Sign in with GitHub"
 4. Complete GitHub OAuth flow
@@ -70,23 +82,23 @@ wrangler pages deploy dist --project-name fluxpulse-release-dashboard
 
 ## Troubleshooting
 
-### "Worker threw exception" errors
-- Check that KV namespace ID is correctly set in wrangler.toml
-- Verify `wrangler secret list` shows all three GitHub secrets
+### Authentication fails with 500 error
+- Verify all three GitHub secrets are set: `wrangler secret list --env production`
+- Check that `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` match your OAuth App
 
 ### OAuth redirect loop
-- Verify GitHub OAuth App redirect URI matches deployed URL: `https://your-project.pages.dev/api/auth/callback`
-- Check that `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are correct
+- Verify GitHub OAuth App redirect URI matches your Worker URL: `https://YOUR_WORKER_URL/api/auth/callback`
+- Check that callback route is accessible (no auth middleware blocking it)
 
-### Sessions not persisting
-- Ensure KV namespace binding is properly configured
-- Check that Cloudflare Pages has read/write access to the KV namespace
+### KV operations timeout
+- Verify KV namespace IDs in `wrangler.toml` match created namespaces
+- Check Cloudflare dashboard to ensure KV namespaces exist
 
 ## Local Development
 
 1. Copy `.dev.vars.example` to `.dev.vars`
 2. Fill in GitHub OAuth App credentials
-3. Run `npm run dev` or `astro dev`
+3. Run `npm run dev`
 4. Server will start on `http://localhost:3000`
 
-Note: Local development with KV requires Wrangler's local KV emulation (automatic with `npm run dev`).
+Wrangler's `npm run dev` automatically emulates KV locally.

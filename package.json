@@ -2,13 +2,13 @@
   "name": "fluxpulse-release-dashboard",
   "version": "0.1.0",
   "type": "module",
-  "description": "Multi-repo release management dashboard for FluxPulse (Astro + Cloudflare Pages)",
+  "description": "Multi-repo release management dashboard for FluxPulse (Astro + Cloudflare Workers)",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "typecheck": "astro check",
-    "preview": "wrangler pages dev",
-    "deploy": "npm run build && wrangler pages deploy dist"
+    "preview": "wrangler dev --main ./dist/server/entry.mjs",
+    "deploy": "npm run build && wrangler deploy --main ./dist/server/entry.mjs --env production"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",
