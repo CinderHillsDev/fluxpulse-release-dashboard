@@ -3,7 +3,7 @@ import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   if (env?.SESSION) {
     // Clear cache keys
     await env.SESSION.delete('status');

@@ -3,7 +3,7 @@ import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ cookies, locals }) => {
+export const POST: APIRoute = async ({ cookies }) => {
   const sessionId = cookies.get('dashboard_session')?.value;
 
   if (sessionId) {

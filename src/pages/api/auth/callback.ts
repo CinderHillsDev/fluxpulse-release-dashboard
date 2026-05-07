@@ -18,7 +18,7 @@ function getHeaders(token: string) {
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request, locals }) => {
+export const GET: APIRoute = async ({ request }) => {
   
   if (!env?.GITHUB_CLIENT_ID || !env?.GITHUB_CLIENT_SECRET || !env?.GITHUB_TOKEN || !env?.SESSION) {
     return errorRedirect(new URL(request.url).origin, 'env_not_configured');

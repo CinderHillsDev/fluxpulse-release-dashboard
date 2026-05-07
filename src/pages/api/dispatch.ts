@@ -15,7 +15,7 @@ function getHeaders(token: string) {
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   
   if (!env) {
     return new Response(JSON.stringify({ error: 'Environment not available' }), {

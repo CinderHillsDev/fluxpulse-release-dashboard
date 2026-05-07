@@ -13,12 +13,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect('/api/auth/login');
   }
 
-  const env = (context.locals as any).runtime?.env;
-  if (!env?.SESSION) {
+  const runtime = (context.locals as any).runtime;
+  if (!runtime?.env?.SESSION) {
     return context.redirect('/api/auth/login');
   }
 
-  const sessionData = await env.SESSION.get(`session:${sessionId}`);
+  const sessionData = await runtime.env.SESSION.get(`session:${sessionId}`);
   if (!sessionData) {
     return context.redirect('/api/auth/login');
   }
