@@ -9,12 +9,6 @@ compatibility_date = "2024-09-23"
 directory = "./dist/client"
 binding = "ASSETS"
 
-# Custom KV namespace for OAuth state and sessions
-[[kv_namespaces]]
-binding = "APP_KV"
-id = "32c07f5351f44286949b5363d39f1846"
-preview_id = "b2103fc8109d4376a8ffcd255d1319d0"
-
 # Secrets managed via `wrangler secret put`:
 #   GITHUB_TOKEN          — fine-grained PAT
 #   GITHUB_CLIENT_ID      — from GitHub OAuth App settings
@@ -25,9 +19,17 @@ account_id = "3e9a9a6915748025fc2f087f981f7476"
 routes = [
   { pattern = "release-dashboard.fluxpulse.app/*", zone_name = "fluxpulse.app" }
 ]
+# KV namespace for OAuth state and sessions
+[[env.production.kv_namespaces]]
+binding = "APP_KV"
+id = "32c07f5351f44286949b5363d39f1846"
 
 [env.uat]
 account_id = "3e9a9a6915748025fc2f087f981f7476"
 routes = [
   { pattern = "release-dashboard.fluxpulse.dev/*", zone_name = "fluxpulse.dev" }
 ]
+# KV namespace for OAuth state and sessions
+[[env.uat.kv_namespaces]]
+binding = "APP_KV"
+id = "b2103fc8109d4376a8ffcd255d1319d0"
