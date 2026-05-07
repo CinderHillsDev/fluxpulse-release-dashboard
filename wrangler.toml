@@ -21,13 +21,13 @@ preview_id = "b2103fc8109d4376a8ffcd255d1319d0"
 #   GITHUB_CLIENT_SECRET  — from GitHub OAuth App settings
 
 [env.production]
-account_id = ""  # TODO: fill with Cloudflare account ID
+account_id = "3e9a9a6915748025fc2f087f981f7476"
 routes = [
   { pattern = "release-dashboard.fluxpulse.app/*", zone_name = "fluxpulse.app" }
 ]
 
 [env.uat]
-account_id = ""  # TODO: fill with Cloudflare account ID
+account_id = "3e9a9a6915748025fc2f087f981f7476"
 routes = [
   { pattern = "release-dashboard.fluxpulse.dev/*", zone_name = "fluxpulse.dev" }
 ]
