@@ -1,0 +1,24 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Navbar from '@/components/Navbar.astro';
+import RepoCard from '@/components/RepoCard.astro';
+import { cacheStatus } from '@/lib/github';
+
+const env = Astro.locals.runtime.env;
+const token = env.GITHUB_TOKEN;
+
+const repos = await cacheStatus(env, token);
+const now = new Date().toLocaleString();
+---
+
+<Layout title="Release Dashboard - Overview">
+  <Navbar currentPage="overview" lastUpdated={now} />
+
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {repos.map((repo) => (
+        <RepoCard status={repo} />
+      ))}
+    </div>
+  </main>
+</Layout>

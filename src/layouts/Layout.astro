@@ -1,0 +1,39 @@
+---
+import '@/styles/global.css';
+
+interface Props {
+  title?: string;
+}
+
+const { title = 'Release Dashboard' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>{title}</title>
+  </head>
+  <body class="bg-slate-50">
+    <slot />
+
+    <script>
+      // Auto-refresh every 30 seconds
+      setTimeout(() => location.reload(), 30_000);
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+</style>

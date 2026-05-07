@@ -1,0 +1,87 @@
+---
+import type { RepoStatus } from '@/types';
+import SyncBadge from './SyncBadge.astro';
+
+interface Props {
+  status: RepoStatus;
+}
+
+const { status } = Astro.props;
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return 'Never';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffH = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffD = Math.floor(diffH / 24);
+
+  if (diffD > 0) return `${diffD}d ago`;
+  if (diffH > 0) return `${diffH}h ago`;
+  return 'just now';
+}
+---
+
+<div class="border border-slate-200 rounded-lg p-6 bg-white hover:shadow-md transition">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h3 class="text-lg font-bold text-slate-900">{status.name}</h3>
+    </div>
+    <SyncBadge status={status} />
+  </div>
+
+  <!-- Version info -->
+  <div class="mb-4 pb-4 border-b border-slate-200">
+    <div class="text-sm text-slate-600 mb-2">
+      Latest tag: <span class="font-mono font-semibold text-slate-900">{status.latestTag || 'none'}</span>
+    </div>
+    <div class="text-sm text-slate-600">
+      UAT:
+      <span class="font-mono font-semibold text-slate-900">{status.uatDeploy?.version || 'none'}</span>
+      {status.uatDeploy && (
+        <span class="text-xs text-slate-500 ml-2">({formatDate(status.uatDeploy.runAt)})</span>
+      )}
+    </div>
+    <div class="text-sm text-slate-600">
+      Prod:
+      <span class="font-mono font-semibold text-slate-900">{status.prodDeploy?.version || 'none'}</span>
+      {status.prodDeploy && (
+        <span class="text-xs text-slate-500 ml-2">({formatDate(status.prodDeploy.runAt)})</span>
+      )}
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="bg-blue-50 rounded p-3">
+      <div class="text-2xl font-bold text-blue-600">{status.openPRCount}</div>
+      <div class="text-xs text-slate-600">Open PRs</div>
+    </div>
+    <div class="bg-amber-50 rounded p-3">
+      <div class="text-2xl font-bold text-amber-600">{status.unreleasedCommits}</div>
+      <div class="text-xs text-slate-600">Unreleased</div>
+    </div>
+  </div>
+
+  {status.ciFailing && (
+    <div class="bg-red-50 border border-red-200 rounded p-2 mb-4">
+      <p class="text-xs text-red-700">⚠ CI is failing on main</p>
+    </div>
+  )}
+
+  <!-- Deploy button -->
+  {status.unreleasedCommits > 0 && (
+    <div class="flex gap-2">
+      <form method="POST" action="/api/dispatch" class="flex-1">
+        <input type="hidden" name="repo" value={status.name} />
+        <input type="hidden" name="bump" value="patch" />
+        <button
+          type="submit"
+          class="w-full px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+        >
+          Release Patch →
+        </button>
+      </form>
+    </div>
+  )}
+</div>

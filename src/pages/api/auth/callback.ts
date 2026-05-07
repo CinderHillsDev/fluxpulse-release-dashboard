@@ -1,33 +1,44 @@
+import type { APIRoute } from 'astro';
+
 const ORG = 'CinderHillsDev';
-const SESSION_TTL = 28800; // 8 hours
+const SESSION_TTL = 28800;
 
 function errorRedirect(origin: string, reason: string): Response {
   return Response.redirect(`${origin}/?auth_error=${reason}`, 302);
 }
 
-export async function onRequest(context) {
-  const { request, env } = context;
+function getHeaders(token: string) {
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+}
 
+export const prerender = false;
+
+export const GET: APIRoute = async ({ request, locals }) => {
+  const env = locals.runtime.env;
   const url = new URL(request.url);
+
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
 
-  // Validate state (CSRF protection)
   if (!state) {
     return errorRedirect(url.origin, 'missing_state');
   }
+
   const storedState = await env.CACHE.get(`oauth_state:${state}`);
   if (!storedState) {
     return errorRedirect(url.origin, 'invalid_state');
   }
-  // State is single-use
+
   await env.CACHE.delete(`oauth_state:${state}`);
 
   if (!code) {
     return errorRedirect(url.origin, 'missing_code');
   }
 
-  // Exchange code for GitHub access token
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
     headers: {
@@ -44,40 +55,32 @@ export async function onRequest(context) {
 
   const tokenData = (await tokenRes.json()) as any;
   const accessToken = tokenData.access_token;
+
   if (!accessToken) {
     return errorRedirect(url.origin, 'token_exchange_failed');
   }
 
-  // Fetch the authenticated user's identity
   const userRes = await fetch('https://api.github.com/user', {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
+    headers: getHeaders(accessToken),
   });
+
   if (!userRes.ok) {
     return errorRedirect(url.origin, 'user_fetch_failed');
   }
+
   const user = (await userRes.json()) as any;
 
-  // Check org membership using the server-side PAT (GITHUB_TOKEN)
   const memberRes = await fetch(
     `https://api.github.com/orgs/${ORG}/members/${user.login}`,
     {
-      headers: {
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
+      headers: getHeaders(env.GITHUB_TOKEN),
     }
   );
-  // 204 = member, 302/404 = not a member
+
   if (memberRes.status !== 204) {
     return errorRedirect(url.origin, 'not_org_member');
   }
 
-  // Generate session ID (do NOT store the GitHub access token)
   const sessionBytes = new Uint8Array(32);
   crypto.getRandomValues(sessionBytes);
   const sessionId = Array.from(sessionBytes)
@@ -94,6 +97,13 @@ export async function onRequest(context) {
     { expirationTtl: SESSION_TTL }
   );
 
-  // Redirect to SPA with session ID as query param
-  return Response.redirect(`${url.origin}/?session=${sessionId}`, 302);
-}
+  const cookieVal = `dashboard_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL}`;
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: '/',
+      'Set-Cookie': cookieVal,
+    },
+  });
+};

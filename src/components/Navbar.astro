@@ -1,0 +1,70 @@
+---
+interface Props {
+  currentPage: 'overview' | 'prs' | 'unreleased';
+  lastUpdated?: string;
+}
+
+const { currentPage, lastUpdated } = Astro.props;
+
+const isActive = (page: string) =>
+  currentPage === page
+    ? 'text-slate-900 border-b-2 border-blue-600'
+    : 'text-slate-600 hover:text-slate-900';
+---
+
+<nav class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-4">
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-slate-900">Release Dashboard</h1>
+
+      <div class="flex items-center gap-8">
+        <!-- Navigation tabs -->
+        <div class="flex gap-6">
+          <a
+            href="/"
+            class={`pb-2 font-medium transition ${isActive('overview')}`}
+          >
+            Overview
+          </a>
+          <a
+            href="/prs"
+            class={`pb-2 font-medium transition ${isActive('prs')}`}
+          >
+            Pull Requests
+          </a>
+          <a
+            href="/unreleased"
+            class={`pb-2 font-medium transition ${isActive('unreleased')}`}
+          >
+            Unreleased
+          </a>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-4 pl-4 border-l border-slate-200">
+          <form method="POST" action="/api/cache">
+            <button
+              type="submit"
+              class="px-3 py-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition"
+            >
+              ↻ Refresh
+            </button>
+          </form>
+
+          <form method="POST" action="/api/auth/logout">
+            <button
+              type="submit"
+              class="px-3 py-1 text-sm font-medium text-red-600 hover:text-red-700 transition"
+            >
+              Logout
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {lastUpdated && (
+      <p class="text-xs text-slate-500 mt-2">Last updated: {lastUpdated}</p>
+    )}
+  </div>
+</nav>

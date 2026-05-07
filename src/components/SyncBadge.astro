@@ -1,0 +1,23 @@
+---
+import type { RepoStatus } from '@/types';
+
+interface Props {
+  status: RepoStatus;
+}
+
+const { status } = Astro.props;
+
+const badges = {
+  'in-sync': { bg: 'bg-green-100', text: 'text-green-800', icon: '●', label: 'IN SYNC' },
+  'uat-ahead': { bg: 'bg-amber-100', text: 'text-amber-800', icon: '▲', label: 'UAT AHEAD' },
+  'never-deployed': { bg: 'bg-slate-100', text: 'text-slate-700', icon: '○', label: 'NEVER DEPLOYED' },
+  'unknown': { bg: 'bg-slate-100', text: 'text-slate-700', icon: '?', label: 'UNKNOWN' },
+};
+
+const badge = badges[status.syncState];
+---
+
+<div class={`inline-flex items-center gap-2 px-3 py-1 rounded-lg ${badge.bg}`}>
+  <span class={badge.text}>{badge.icon}</span>
+  <span class={`text-sm font-semibold ${badge.text}`}>{badge.label}</span>
+</div>

@@ -2,26 +2,25 @@
   "name": "fluxpulse-release-dashboard",
   "version": "0.1.0",
   "type": "module",
-  "description": "Multi-repo release management dashboard for FluxPulse",
+  "description": "Multi-repo release management dashboard for FluxPulse (Astro + Cloudflare Pages)",
   "scripts": {
-    "dev": "wrangler pages dev",
-    "build": "vite build",
-    "typecheck": "tsc --noEmit",
-    "preview": "vite preview",
+    "dev": "astro dev",
+    "build": "astro build",
+    "typecheck": "astro check",
+    "preview": "wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy dist"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@astrojs/check": "^0.9.9",
+    "@astrojs/cloudflare": "^13.3.0",
+    "astro": "^6.2.1",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.6.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250102.0",
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "wrangler": "^3.45.0",
-    "tailwindcss": "^3.4.1"
+    "wrangler": "^4.88.0"
   }
 }

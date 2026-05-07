@@ -1,0 +1,54 @@
+---
+import type { RepoStatus } from '@/types';
+
+interface Props {
+  repos: RepoStatus[];
+}
+
+const { repos } = Astro.props;
+
+const reposWithUnreleased = repos.filter((r) => r.unreleasedCommits > 0);
+---
+
+{reposWithUnreleased.length === 0 ? (
+  <div class="text-center py-12">
+    <p class="text-slate-600">All commits have been released</p>
+  </div>
+) : (
+  <div class="space-y-6">
+    {reposWithUnreleased.map((repo) => (
+      <div class="bg-white rounded-lg border border-slate-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">{repo.name}</h3>
+            <p class="text-sm text-slate-600">
+              {repo.unreleasedCommits} commit{repo.unreleasedCommits !== 1 ? 's' : ''} since {repo.latestTag || 'initial'}
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <form method="POST" action="/api/dispatch">
+              <input type="hidden" name="repo" value={repo.name} />
+              <input type="hidden" name="bump" value="patch" />
+              <button
+                type="submit"
+                class="px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              >
+                Patch
+              </button>
+            </form>
+            <form method="POST" action="/api/dispatch">
+              <input type="hidden" name="repo" value={repo.name} />
+              <input type="hidden" name="bump" value="minor" />
+              <button
+                type="submit"
+                class="px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              >
+                Minor
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
