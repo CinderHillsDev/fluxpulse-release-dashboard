@@ -1,7 +1,9 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { env as cfEnv } from 'cloudflare:workers';
 
 export const prerender = false;
+
+const env = cfEnv as any as Env;
 
 export const GET: APIRoute = async ({ request }) => {
   if (!env?.GITHUB_CLIENT_ID || !env?.SESSION) {

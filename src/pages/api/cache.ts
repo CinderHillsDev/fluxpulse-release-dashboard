@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { env as cfEnv } from 'cloudflare:workers';
+
+const env = cfEnv as any as Env;
 
 export const prerender = false;
 

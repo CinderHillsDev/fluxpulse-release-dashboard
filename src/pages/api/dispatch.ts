@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { env as cfEnv } from 'cloudflare:workers';
 
+const env = cfEnv as any as Env;
 const GH_API = 'https://api.github.com';
 const GH_OWNER = 'CinderHillsDev';
 const GH_API_VERSION = '2022-11-28';
