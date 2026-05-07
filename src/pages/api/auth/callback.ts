@@ -19,7 +19,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env;
-  if (!env?.GITHUB_CLIENT_ID || !env?.GITHUB_CLIENT_SECRET || !env?.GITHUB_TOKEN || !env?.APP_KV) {
+  if (!env?.GITHUB_CLIENT_ID || !env?.GITHUB_CLIENT_SECRET || !env?.GITHUB_TOKEN || !env?.SESSION) {
     return errorRedirect(new URL(request.url).origin, 'env_not_configured');
   }
 
@@ -35,12 +35,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
     return errorRedirect(url.origin, 'missing_state');
   }
 
-  const stateValid = await env.APP_KV.get(`oauth_state:${state}`);
+  const stateValid = await env.SESSION.get(`oauth_state:${state}`);
   if (!stateValid) {
     return errorRedirect(url.origin, 'invalid_state');
   }
 
-  await env.APP_KV.delete(`oauth_state:${state}`);
+  await env.SESSION.delete(`oauth_state:${state}`);
 
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
@@ -96,7 +96,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     createdAt: Date.now(),
   };
 
-  await env.APP_KV.put(`session:${sessionId}`, JSON.stringify(sessionData), {
+  await env.SESSION.put(`session:${sessionId}`, JSON.stringify(sessionData), {
     expirationTtl: SESSION_TTL,
   });
 

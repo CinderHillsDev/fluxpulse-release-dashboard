@@ -221,19 +221,19 @@ export async function cacheStatus(
   env: Env,
   token: string
 ): Promise<RepoStatus[]> {
-  const cached = await env.APP_KV.get('status', { type: 'json' });
+  const cached = await env.SESSION.get('status', { type: 'json' });
   if (cached) return cached as RepoStatus[];
 
   const fresh = await getRepoStatus(token);
-  await env.APP_KV.put('status', JSON.stringify(fresh), { expirationTtl: 300 });
+  await env.SESSION.put('status', JSON.stringify(fresh), { expirationTtl: 300 });
   return fresh;
 }
 
 export async function cachePRs(env: Env, token: string): Promise<PR[]> {
-  const cached = await env.APP_KV.get('prs', { type: 'json' });
+  const cached = await env.SESSION.get('prs', { type: 'json' });
   if (cached) return cached as PR[];
 
   const fresh = await getAllPRs(token);
-  await env.APP_KV.put('prs', JSON.stringify(fresh), { expirationTtl: 120 });
+  await env.SESSION.put('prs', JSON.stringify(fresh), { expirationTtl: 120 });
   return fresh;
 }

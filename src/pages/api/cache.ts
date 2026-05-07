@@ -5,10 +5,10 @@ export const prerender = false;
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env;
 
-  if (env?.APP_KV) {
+  if (env?.SESSION) {
     // Clear cache keys
-    await env.APP_KV.delete('status');
-    await env.APP_KV.delete('prs');
+    await env.SESSION.delete('status');
+    await env.SESSION.delete('prs');
   }
 
   // Redirect back to referer or home

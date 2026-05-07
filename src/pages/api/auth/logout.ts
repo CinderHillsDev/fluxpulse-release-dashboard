@@ -7,8 +7,8 @@ export const POST: APIRoute = async ({ cookies, locals }) => {
 
   if (sessionId) {
     const env = (locals as any).runtime?.env;
-    if (env?.APP_KV) {
-      await env.APP_KV.delete(`session:${sessionId}`);
+    if (env?.SESSION) {
+      await env.SESSION.delete(`session:${sessionId}`);
     }
   }
 

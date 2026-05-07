@@ -4,7 +4,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime?.env;
-  if (!env?.GITHUB_CLIENT_ID || !env?.APP_KV) {
+  if (!env?.GITHUB_CLIENT_ID || !env?.SESSION) {
     return new Response('Configuration error', { status: 500 });
   }
 
@@ -14,7 +14,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-  await env.APP_KV.put(`oauth_state:${state}`, '1', { expirationTtl: 600 });
+  await env.SESSION.put(`oauth_state:${state}`, '1', { expirationTtl: 600 });
 
   const origin = new URL(request.url).origin;
   const redirectUri = `${origin}/api/auth/callback`;
