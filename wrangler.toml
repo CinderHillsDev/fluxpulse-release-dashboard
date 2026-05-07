@@ -7,7 +7,12 @@ pages_build_output_dir = "dist"
 #   GITHUB_CLIENT_ID      — from GitHub OAuth App settings
 #   GITHUB_CLIENT_SECRET  — from GitHub OAuth App settings
 
-[env.production]
-kv_namespaces = [
-  { binding = "APP_KV", id = "your_kv_namespace_id_here" }
-]
+# Custom KV namespace for OAuth state and sessions
+# To use this in production:
+# 1. Create a KV namespace: wrangler kv:namespace create "fluxpulse-dashboard-kv" --preview false
+# 2. Copy the namespace ID
+# 3. Replace the id value below with your namespace ID
+[[kv_namespaces]]
+binding = "APP_KV"
+id = "your_kv_namespace_id_here"
+preview_id = "your_preview_kv_namespace_id_here"
