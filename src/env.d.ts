@@ -20,3 +20,7 @@ interface Env {
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
 }
+
+declare module 'cloudflare:workers' {
+  export declare const env: Env;
+}
