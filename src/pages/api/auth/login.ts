@@ -24,7 +24,7 @@ export const GET: APIRoute = async ({ request }) => {
   const params = new URLSearchParams({
     client_id: env.GITHUB_CLIENT_ID,
     redirect_uri: redirectUri,
-    scope: 'read:org',
+    scope: 'read:user read:org',
     state,
   });
 
