@@ -1,9 +1,12 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
+  const env = (locals as any).runtime?.env;
+  if (!env?.CACHE) {
+    return new Response('KV binding not available', { status: 500 });
+  }
 
   const origin = new URL(request.url).origin;
   const redirectUri = `${origin}/api/auth/callback`;

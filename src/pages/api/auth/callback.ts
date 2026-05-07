@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
 
 const ORG = 'CinderHillsDev';
 const SESSION_TTL = 28800;
@@ -18,7 +17,12 @@ function getHeaders(token: string) {
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
+  const env = (locals as any).runtime?.env;
+  if (!env) {
+    return errorRedirect(new URL(request.url).origin, 'env_not_available');
+  }
+
   const url = new URL(request.url);
 
   const code = url.searchParams.get('code');
