@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
+import { env } from 'cloudflare:workers';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const isAuthRoute = context.url.pathname.startsWith('/api/auth/');
@@ -13,9 +14,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect('/api/auth/login');
   }
 
-  const raw = await context.locals.runtime.env.CACHE.get(
-    `session:${sessionId}`
-  );
+  const raw = await env.CACHE.get(`session:${sessionId}`);
 
   if (!raw) {
     context.cookies.delete('dashboard_session');

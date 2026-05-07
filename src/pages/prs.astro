@@ -1,10 +1,10 @@
 ---
+import { env } from 'cloudflare:workers';
 import Layout from '@/layouts/Layout.astro';
 import Navbar from '@/components/Navbar.astro';
 import PrTable from '@/components/PrTable.astro';
 import { cachePRs } from '@/lib/github';
 
-const env = Astro.locals.runtime.env;
 const token = env.GITHUB_TOKEN;
 
 const prs = await cachePRs(env, token);

@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, locals, cookies }) => {
-  const env = locals.runtime.env;
+export const POST: APIRoute = async ({ request, cookies }) => {
 
   const sessionId = cookies.get('dashboard_session')?.value;
 
