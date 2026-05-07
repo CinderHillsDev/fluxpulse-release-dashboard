@@ -48,7 +48,12 @@ export const GET: APIRoute = async ({ request }) => {
       return errorRedirect(url.origin, 'invalid_state');
     }
 
-    await env.SESSION.delete(`oauth_state:${state}`);
+    // Delete state immediately to prevent reuse
+    try {
+      await env.SESSION.delete(`oauth_state:${state}`);
+    } catch (e) {
+      console.error('Failed to delete state:', e);
+    }
 
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
