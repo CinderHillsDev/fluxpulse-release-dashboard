@@ -19,7 +19,7 @@ function getHeaders(token: string) {
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ request }) => {
+export const GET: APIRoute = async ({ request, cookies }) => {
   try {
     if (!env?.GITHUB_CLIENT_ID || !env?.GITHUB_CLIENT_SECRET || !env?.GITHUB_TOKEN || !env?.SESSION) {
       console.error('Missing env vars');
@@ -121,14 +121,20 @@ export const GET: APIRoute = async ({ request }) => {
       expirationTtl: SESSION_TTL,
     });
 
-    const cookieVal = `dashboard_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL}`;
+    console.log('Setting session cookie:', sessionId);
+    cookies.set('dashboard_session', sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_TTL,
+    });
 
     console.log('Redirecting to home with session cookie');
     return new Response(null, {
       status: 302,
       headers: {
         Location: '/',
-        'Set-Cookie': cookieVal,
       },
     });
   } catch (err) {
