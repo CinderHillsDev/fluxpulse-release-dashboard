@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 const GH_API = 'https://api.github.com';
 const GH_OWNER = 'CinderHillsDev';
@@ -15,7 +16,7 @@ function getHeaders(token: string) {
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const env = (locals as any).runtime?.env;
+  
   if (!env) {
     return new Response(JSON.stringify({ error: 'Environment not available' }), {
       status: 500,

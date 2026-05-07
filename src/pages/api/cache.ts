@@ -1,10 +1,9 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  const env = (locals as any).runtime?.env;
-
   if (env?.SESSION) {
     // Clear cache keys
     await env.SESSION.delete('status');
