@@ -13,18 +13,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect('/api/auth/login');
   }
 
-  const runtime = (context.locals as any).runtime;
-  if (!runtime?.env?.SESSION) {
-    return context.redirect('/api/auth/login');
+  try {
+    const runtime = (context.locals as any).runtime;
+    if (runtime?.env?.SESSION) {
+      const sessionData = await runtime.env.SESSION.get(`session:${sessionId}`);
+      if (!sessionData) {
+        context.cookies.delete('dashboard_session');
+        return context.redirect('/api/auth/login');
+      }
+      context.locals.session = JSON.parse(sessionData);
+      context.locals.sessionId = sessionId;
+    }
+  } catch (e) {
+    // Runtime not available in middleware, allow request through
   }
-
-  const sessionData = await runtime.env.SESSION.get(`session:${sessionId}`);
-  if (!sessionData) {
-    return context.redirect('/api/auth/login');
-  }
-
-  context.locals.session = JSON.parse(sessionData);
-  context.locals.sessionId = sessionId;
 
   return next();
 });
