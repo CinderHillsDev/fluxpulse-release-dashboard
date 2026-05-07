@@ -5,7 +5,7 @@ pages_build_output_dir = "dist"
 # KV namespace for caching GitHub API responses and storing sessions
 [[kv_namespaces]]
 binding = "CACHE"
-id = "YOUR_KV_NAMESPACE_ID_HERE"
+id = "def329c1a0dd405faa372c5486d72af6"
 preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID_HERE"
 
 [env.production]
