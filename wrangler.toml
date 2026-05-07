@@ -1,9 +1,9 @@
 name = "fluxpulse-release-dashboard"
 compatibility_date = "2024-09-23"
+main = "dist/server/entry.mjs"
 
 # @astrojs/cloudflare adapter generates dist/server/entry.mjs (worker entry)
-# and dist/server/wrangler.json (merged config). Omit `main` here to avoid
-# chicken-and-egg build failure; deploy passes --main ./dist/server/entry.mjs.
+# and dist/server/wrangler.json (merged config).
 
 [assets]
 directory = "./dist/client"
