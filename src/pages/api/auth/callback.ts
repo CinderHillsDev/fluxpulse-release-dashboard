@@ -55,6 +55,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       console.error('Failed to delete state:', e);
     }
 
+    // Check for rate limit before making requests
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -69,12 +70,18 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       }),
     });
 
+    // Check for rate limit responses (403)
+    if (tokenRes.status === 403) {
+      console.error('GitHub rate limited');
+      return errorRedirect(url.origin, 'github_rate_limited');
+    }
+
     const tokenData = (await tokenRes.json()) as any;
     console.log('Token exchange response:', { status: tokenRes.status, hasToken: !!tokenData.access_token, error: tokenData.error });
     const accessToken = tokenData.access_token;
 
     if (!accessToken) {
-      console.error('No access token in response');
+      console.error('No access token in response:', tokenData.error);
       return errorRedirect(url.origin, 'token_exchange_failed');
     }
 

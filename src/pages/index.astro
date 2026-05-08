@@ -10,12 +10,34 @@ const token = typedEnv.GITHUB_TOKEN;
 
 const repos = await cacheStatus(typedEnv, token);
 const now = new Date().toLocaleString();
+
+// Get auth error from query string if present
+const url = new URL(Astro.request.url);
+const authError = url.searchParams.get('auth_error');
+
+const errorMessages: Record<string, string> = {
+  github_rate_limited: 'GitHub rate limit exceeded. Please wait a few minutes before trying to log in again.',
+  token_exchange_failed: 'Failed to exchange OAuth code for token. Please try again.',
+  user_fetch_failed: 'Failed to fetch user information from GitHub. Please try again.',
+  invalid_state: 'Invalid OAuth state. Please try logging in again.',
+  env_not_configured: 'Server configuration error. Please contact the administrator.',
+  not_org_member: 'You are not a member of the required GitHub organization.',
+  callback_error: 'An error occurred during login. Please try again.',
+};
 ---
 
 <Layout title="Release Dashboard - Overview">
   <Navbar currentPage="overview" lastUpdated={now} />
 
   <main class="max-w-7xl mx-auto px-4 py-8">
+    {authError && (
+      <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-800">
+          <strong>Login Error:</strong> {errorMessages[authError] || `An error occurred: ${authError}`}
+        </p>
+      </div>
+    )}
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {repos.map((repo) => (
         <RepoCard status={repo} />
