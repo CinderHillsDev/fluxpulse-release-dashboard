@@ -7,23 +7,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
-  // TODO: Re-enable auth after fixing cookie/session persistence
-  // For now, allow all requests through to test dashboard functionality
-
   const sessionId = context.cookies.get('dashboard_session')?.value;
-  if (sessionId) {
-    try {
-      const runtime = (context.locals as any).runtime;
-      if (runtime?.env?.SESSION) {
-        const sessionData = await runtime.env.SESSION.get(`session:${sessionId}`);
-        if (sessionData) {
-          context.locals.session = JSON.parse(sessionData);
-          context.locals.sessionId = sessionId;
-        }
+
+  if (!sessionId) {
+    return context.redirect('/api/auth/login');
+  }
+
+  try {
+    const runtime = (context.locals as any).runtime;
+    if (runtime?.env?.SESSION) {
+      const sessionData = await runtime.env.SESSION.get(`session:${sessionId}`);
+      if (!sessionData) {
+        context.cookies.delete('dashboard_session');
+        return context.redirect('/api/auth/login');
       }
-    } catch (e) {
-      // Ignore errors, just allow request
+      context.locals.session = JSON.parse(sessionData);
+      context.locals.sessionId = sessionId;
     }
+  } catch (e) {
+    console.error('Middleware error:', e);
   }
 
   return next();
