@@ -7,19 +7,16 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ cookies }) => {
   const sessionId = cookies.get('dashboard_session')?.value;
-
   if (sessionId) {
-    if (env?.SESSION) {
+    try {
       await env.SESSION.delete(`session:${sessionId}`);
-    }
+    } catch {}
   }
 
-  cookies.delete('dashboard_session');
-
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: '/api/auth/login',
-    },
-  });
+  const headers = new Headers({ Location: '/api/auth/login' });
+  headers.append(
+    'Set-Cookie',
+    'dashboard_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax'
+  );
+  return new Response(null, { status: 302, headers });
 };

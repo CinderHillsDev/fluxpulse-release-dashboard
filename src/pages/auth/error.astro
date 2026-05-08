@@ -1,0 +1,71 @@
+---
+const reason = Astro.url.searchParams.get('reason') || 'unknown_error';
+
+const errorMessages: Record<string, string> = {
+  invalid_state: 'Invalid OAuth state. Please try logging in again.',
+  github_rate_limited: 'GitHub rate limit exceeded. Please wait a few minutes before trying again.',
+  token_exchange_failed: 'Failed to exchange authorization code. Please try again.',
+  user_fetch_failed: 'Failed to fetch user information from GitHub. Please try again.',
+  not_org_member: 'You are not a member of the required GitHub organization.',
+  callback_error: 'An error occurred during login. Please try again.',
+  unknown_error: 'An unknown error occurred. Please try again.',
+};
+
+const message = errorMessages[reason] || errorMessages.unknown_error;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login Error - Release Dashboard</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      .container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        padding: 40px;
+        max-width: 500px;
+        text-align: center;
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 16px;
+      }
+      p {
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 32px;
+      }
+      a {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        text-decoration: none;
+        padding: 12px 32px;
+        border-radius: 4px;
+        transition: background 0.3s;
+      }
+      a:hover {
+        background: #764ba2;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Login Error</h1>
+      <p>{message}</p>
+      <a href="/api/auth/login">Try Again</a>
+    </div>
+  </body>
+</html>

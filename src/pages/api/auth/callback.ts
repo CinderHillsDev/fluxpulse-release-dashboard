@@ -5,8 +5,13 @@ const env = cfEnv as any as Env;
 const ORG = 'CinderHillsDev';
 const SESSION_TTL = 28800;
 
+export const prerender = false;
+
 function errorRedirect(origin: string, reason: string): Response {
-  return Response.redirect(`${origin}/?auth_error=${reason}`, 302);
+  return Response.redirect(
+    `${origin}/auth/error?reason=${encodeURIComponent(reason)}`,
+    302
+  );
 }
 
 function getHeaders(token: string) {
@@ -17,45 +22,17 @@ function getHeaders(token: string) {
   };
 }
 
-export const prerender = false;
-
 export const GET: APIRoute = async ({ request, cookies }) => {
   try {
-    if (!env?.GITHUB_CLIENT_ID || !env?.GITHUB_CLIENT_SECRET || !env?.GITHUB_TOKEN || !env?.SESSION) {
-      console.error('Missing env vars');
-      return errorRedirect(new URL(request.url).origin, 'env_not_configured');
-    }
-
     const url = new URL(request.url);
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
-    console.log('Callback received: code=', !!code, 'state=', !!state);
+    const storedState = cookies.get('oauth_state')?.value;
 
-    if (!code) {
-      console.error('Missing code');
-      return errorRedirect(url.origin, 'missing_code');
-    }
-
-    if (!state) {
-      console.error('Missing state');
-      return errorRedirect(url.origin, 'missing_state');
-    }
-
-    const stateValid = await env.SESSION.get(`oauth_state:${state}`);
-    console.log('State valid:', !!stateValid);
-    if (!stateValid) {
-      console.error('Invalid or expired state');
+    if (!code || !state || state !== storedState) {
       return errorRedirect(url.origin, 'invalid_state');
     }
 
-    // Delete state immediately to prevent reuse
-    try {
-      await env.SESSION.delete(`oauth_state:${state}`);
-    } catch (e) {
-      console.error('Failed to delete state:', e);
-    }
-
-    // Check for rate limit before making requests
     const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -70,18 +47,14 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       }),
     });
 
-    // Check for rate limit responses (403)
-    if (tokenRes.status === 403) {
-      console.error('GitHub rate limited');
+    if (tokenRes.status === 403 || tokenRes.status === 429) {
       return errorRedirect(url.origin, 'github_rate_limited');
     }
 
     const tokenData = (await tokenRes.json()) as any;
-    console.log('Token exchange response:', { status: tokenRes.status, hasToken: !!tokenData.access_token, error: tokenData.error });
     const accessToken = tokenData.access_token;
 
     if (!accessToken) {
-      console.error('No access token in response:', tokenData.error);
       return errorRedirect(url.origin, 'token_exchange_failed');
     }
 
@@ -90,26 +63,21 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     });
 
     if (!userRes.ok) {
-      console.error('User fetch failed:', userRes.status);
       return errorRedirect(url.origin, 'user_fetch_failed');
     }
 
     const user = (await userRes.json()) as any;
-    console.log('User fetched:', user.login, 'id:', user.id);
 
-    // TODO: Uncomment org membership check after testing
-    // const memberRes = await fetch(
-    //   `https://api.github.com/orgs/${ORG}/members/${user.login}`,
-    //   {
-    //     headers: getHeaders(env.GITHUB_TOKEN),
-    //   }
-    // );
-    //
-    // console.log('Org membership check:', memberRes.status, user.login);
-    // if (memberRes.status !== 204) {
-    //   console.error('Not org member:', memberRes.status);
-    //   return errorRedirect(url.origin, 'not_org_member');
-    // }
+    const memberRes = await fetch(
+      `https://api.github.com/orgs/${ORG}/members/${user.login}`,
+      {
+        headers: getHeaders(env.GITHUB_TOKEN),
+      }
+    );
+
+    if (memberRes.status !== 204) {
+      return errorRedirect(url.origin, 'not_org_member');
+    }
 
     const sessionBytes = new Uint8Array(32);
     crypto.getRandomValues(sessionBytes);
@@ -123,24 +91,20 @@ export const GET: APIRoute = async ({ request, cookies }) => {
       createdAt: Date.now(),
     };
 
-    console.log('Creating session:', sessionId);
     await env.SESSION.put(`session:${sessionId}`, JSON.stringify(sessionData), {
       expirationTtl: SESSION_TTL,
     });
 
-    console.log('Setting session cookie:', sessionId);
-
-    // Manually set cookie header - Astro cookies.set() may not work in redirects
-    const cookieHeader = `dashboard_session=${sessionId}; Path=/; Max-Age=${SESSION_TTL}; SameSite=Lax; HttpOnly; Secure`;
-
-    console.log('Redirecting to home with session cookie');
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: '/',
-        'Set-Cookie': cookieHeader,
-      },
-    });
+    const headers = new Headers({ Location: '/' });
+    headers.append(
+      'Set-Cookie',
+      'oauth_state=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax'
+    );
+    headers.append(
+      'Set-Cookie',
+      `dashboard_session=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_TTL}`
+    );
+    return new Response(null, { status: 302, headers });
   } catch (err) {
     console.error('Callback error:', err);
     return errorRedirect(new URL(request.url).origin, 'callback_error');
