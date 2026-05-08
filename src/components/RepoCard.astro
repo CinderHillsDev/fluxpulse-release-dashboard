@@ -69,9 +69,9 @@ function formatDate(dateStr: string | null): string {
     </div>
   )}
 
-  <!-- Deploy button -->
-  {status.unreleasedCommits > 0 && (
-    <div class="flex gap-2">
+  <!-- Action buttons -->
+  <div class="flex gap-2">
+    {status.unreleasedCommits > 0 && (
       <form method="POST" action="/api/dispatch" class="flex-1">
         <input type="hidden" name="repo" value={status.name} />
         <input type="hidden" name="bump" value="patch" />
@@ -82,6 +82,19 @@ function formatDate(dateStr: string | null): string {
           Release Patch →
         </button>
       </form>
-    </div>
-  )}
+    )}
+
+    {status.syncState === 'uat-ahead' && (
+      <form method="POST" action="/api/dispatch" class="flex-1">
+        <input type="hidden" name="repo" value={status.name} />
+        <input type="hidden" name="workflow" value="deploy-prod" />
+        <button
+          type="submit"
+          class="w-full px-3 py-2 text-sm font-medium bg-green-600 text-white rounded hover:bg-green-700 transition"
+        >
+          Deploy to Prod →
+        </button>
+      </form>
+    )}
+  </div>
 </div>

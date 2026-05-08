@@ -11,6 +11,7 @@ function getHeaders(token: string) {
     Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': GH_API_VERSION,
+    'User-Agent': 'fluxpulse-release-dashboard',
   };
 }
 
@@ -35,6 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const repo = String(formData.get('repo') ?? '');
   const bump = String(formData.get('bump') ?? 'patch');
+  const workflow = String(formData.get('workflow') ?? 'release');
 
   if (!repo) {
     return new Response(JSON.stringify({ error: 'Missing repo' }), {
@@ -45,13 +47,13 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const referer = request.headers.get('Referer');
-    const inputs = {
-      bump_type: bump === 'minor' ? 'minor' : 'patch',
-    };
+    const isRelease = workflow !== 'deploy-prod';
+    const workflowFile = isRelease ? 'release.yml' : 'deploy-prod.yml';
+    const inputs = isRelease ? { bump_type: bump === 'minor' ? 'minor' : 'patch' } : {};
 
     // Trigger workflow_dispatch
     const dispatchRes = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/release.yml/dispatches`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}/dispatches`,
       {
         method: 'POST',
         headers: getHeaders(env.GITHUB_TOKEN),
