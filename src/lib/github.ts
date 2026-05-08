@@ -39,10 +39,15 @@ async function fetchLatestTag(token: string, repo: string): Promise<string | nul
     const res = await fetch(`${GH_API}/repos/${GH_OWNER}/${repo}/tags?per_page=1`, {
       headers: getHeaders(token),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`fetchLatestTag failed for ${repo}:`, res.status, text);
+      return null;
+    }
     const tags = (await res.json()) as GitHubTag[];
     return tags[0]?.name ?? null;
-  } catch {
+  } catch (err) {
+    console.error(`fetchLatestTag error for ${repo}:`, err);
     return null;
   }
 }
@@ -59,7 +64,11 @@ async function fetchDeployRun(
         headers: getHeaders(token),
       }
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`fetchDeployRun failed for ${repo}/${workflow}:`, res.status, text);
+      return null;
+    }
     const data = (await res.json()) as { workflow_runs: GitHubWorkflowRun[] };
     const run = data.workflow_runs[0];
     if (!run) return null;
@@ -74,7 +83,8 @@ async function fetchDeployRun(
       runUrl: `https://github.com/${GH_OWNER}/${repo}/actions/runs/${run.id}`,
       conclusion: (run.conclusion as 'success' | 'failure' | 'in_progress') ?? 'in_progress',
     };
-  } catch {
+  } catch (err) {
+    console.error(`fetchDeployRun error for ${repo}/${workflow}:`, err);
     return null;
   }
 }
