@@ -30,6 +30,7 @@ function getHeaders(token: string) {
     Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': GH_API_VERSION,
+    'User-Agent': 'fluxpulse-release-dashboard',
   };
 }
 
