@@ -55,6 +55,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     const accessToken = tokenData.access_token;
 
     if (!accessToken) {
+      console.error('Token exchange failed:', tokenData);
       return errorRedirect(url.origin, 'token_exchange_failed');
     }
 
@@ -63,6 +64,8 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     });
 
     if (!userRes.ok) {
+      const errorText = await userRes.text();
+      console.error('User fetch failed:', userRes.status, errorText);
       return errorRedirect(url.origin, 'user_fetch_failed');
     }
 
