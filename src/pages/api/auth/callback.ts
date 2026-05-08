@@ -131,7 +131,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     console.log('Setting session cookie:', sessionId);
 
     // Manually set cookie header - Astro cookies.set() may not work in redirects
-    const cookieHeader = `dashboard_session=${sessionId}; Path=/; Max-Age=${SESSION_TTL}; SameSite=Lax`;
+    const cookieHeader = `dashboard_session=${sessionId}; Path=/; Max-Age=${SESSION_TTL}; SameSite=Lax; HttpOnly; Secure`;
 
     console.log('Redirecting to home with session cookie');
     return new Response(null, {

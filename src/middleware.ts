@@ -8,8 +8,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const sessionId = context.cookies.get('dashboard_session')?.value;
+  console.log('Middleware: sessionId=', !!sessionId, 'path=', context.url.pathname);
 
   if (!sessionId) {
+    console.log('No session cookie, redirecting to login');
     return context.redirect('/api/auth/login');
   }
 
