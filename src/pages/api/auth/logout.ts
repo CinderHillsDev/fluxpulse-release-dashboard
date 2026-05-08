@@ -5,7 +5,7 @@ const env = cfEnv as any as Env;
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ cookies }) => {
+export const GET: APIRoute = async ({ cookies }) => {
   const sessionId = cookies.get('dashboard_session')?.value;
   if (sessionId) {
     try {
