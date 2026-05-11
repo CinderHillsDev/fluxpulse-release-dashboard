@@ -25,6 +25,21 @@ interface GitHubTag {
   };
 }
 
+interface GitHubDeployment {
+  id: number;
+  sha: string;
+  ref: string;
+  created_at: string;
+  updated_at: string;
+  statuses_url: string;
+}
+
+interface GitHubDeploymentStatus {
+  state: 'error' | 'failure' | 'inactive' | 'in_progress' | 'pending' | 'success';
+  created_at: string;
+  updated_at: string;
+}
+
 function getHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
@@ -52,39 +67,63 @@ async function fetchLatestTag(token: string, repo: string): Promise<string | nul
   }
 }
 
-async function fetchDeployRun(
+async function fetchDeploymentByEnvironment(
   token: string,
   repo: string,
-  workflow: string
+  environment: string
 ): Promise<DeployInfo | null> {
   try {
-    const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflow}/runs?per_page=1`,
+    // Fetch latest deployment to the environment
+    const deployRes = await fetch(
+      `${GH_API}/repos/${GH_OWNER}/${repo}/deployments?environment=${environment}&per_page=1`,
       {
         headers: getHeaders(token),
       }
     );
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`fetchDeployRun failed for ${repo}/${workflow}:`, res.status, text);
+    if (!deployRes.ok) {
+      console.error(
+        `fetchDeploymentByEnvironment failed for ${repo}/${environment}:`,
+        deployRes.status
+      );
       return null;
     }
-    const data = (await res.json()) as { workflow_runs: GitHubWorkflowRun[] };
-    const run = data.workflow_runs[0];
-    if (!run) return null;
+    const deployments = (await deployRes.json()) as GitHubDeployment[];
+    const deployment = deployments[0];
+    if (!deployment) return null;
 
-    // Extract version from run name (e.g. "Deploy v1.0.0" -> "v1.0.0")
-    const versionMatch = run.name.match(/v[\d.]+/);
-    const version = versionMatch ? versionMatch[0] : null;
+    // Fetch deployment status to get the result
+    const statusRes = await fetch(`${deployment.statuses_url}?per_page=1`, {
+      headers: getHeaders(token),
+    });
+    if (!statusRes.ok) {
+      console.error(
+        `fetchDeploymentStatus failed for ${repo}/${environment}:`,
+        statusRes.status
+      );
+      return null;
+    }
+    const statuses = (await statusRes.json()) as GitHubDeploymentStatus[];
+    const status = statuses[0];
+
+    // Use short commit SHA as version
+    const version = deployment.sha.substring(0, 7);
 
     return {
       version,
-      runAt: run.updated_at,
-      runUrl: `https://github.com/${GH_OWNER}/${repo}/actions/runs/${run.id}`,
-      conclusion: (run.conclusion as 'success' | 'failure' | 'in_progress') ?? 'in_progress',
+      runAt: status?.updated_at ?? deployment.updated_at,
+      runUrl: `https://github.com/${GH_OWNER}/${repo}/deployments`,
+      conclusion:
+        status?.state === 'success'
+          ? 'success'
+          : status?.state === 'failure'
+            ? 'failure'
+            : 'in_progress',
     };
   } catch (err) {
-    console.error(`fetchDeployRun error for ${repo}/${workflow}:`, err);
+    console.error(
+      `fetchDeploymentByEnvironment error for ${repo}/${environment}:`,
+      err
+    );
     return null;
   }
 }
@@ -196,8 +235,8 @@ export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
       const [latestTag, uatDeploy, prodDeploy, openPrCount, ciPassing] =
         await Promise.all([
           fetchLatestTag(token, repo),
-          fetchDeployRun(token, repo, 'deploy-uat.yml'),
-          fetchDeployRun(token, repo, 'deploy-prod.yml'),
+          fetchDeploymentByEnvironment(token, repo, 'uat'),
+          fetchDeploymentByEnvironment(token, repo, 'prod'),
           fetchOpenPRCount(token, repo),
           checkCIStatus(token, repo),
         ]);
