@@ -8,6 +8,14 @@ import type {
 const GH_API = 'https://api.github.com';
 const GH_API_VERSION = '2022-11-28';
 
+/**
+ * KV cache key for the per-repo status payload returned by getRepoStatus.
+ * Bump the suffix when changing the cached shape so old entries are
+ * automatically ignored. Exported so /api/cache (the Refresh button) and
+ * cacheStatus stay in lockstep.
+ */
+export const STATUS_CACHE_KEY = 'status:v2';
+
 interface GitHubWorkflowRun {
   id: number;
   name: string;
@@ -274,14 +282,11 @@ export async function cacheStatus(
   env: Env,
   token: string
 ): Promise<RepoStatus[]> {
-  // Cache key is versioned so logic changes (e.g. SHA-based sync detection
-  // replacing tag-based) automatically bust stale entries on deploy.
-  const cacheKey = 'status:v2';
-  const cached = await env.SESSION.get(cacheKey, { type: 'json' });
+  const cached = await env.SESSION.get(STATUS_CACHE_KEY, { type: 'json' });
   if (cached) return cached as RepoStatus[];
 
   const fresh = await getRepoStatus(token);
-  await env.SESSION.put(cacheKey, JSON.stringify(fresh), { expirationTtl: 300 });
+  await env.SESSION.put(STATUS_CACHE_KEY, JSON.stringify(fresh), { expirationTtl: 300 });
   return fresh;
 }
 

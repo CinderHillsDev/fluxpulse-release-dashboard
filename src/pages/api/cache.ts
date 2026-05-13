@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env as cfEnv } from 'cloudflare:workers';
+import { STATUS_CACHE_KEY } from '@/lib/github';
 
 const env = cfEnv as any as Env;
 
@@ -7,9 +8,14 @@ export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
   if (env?.SESSION) {
-    // Clear cache keys
-    await env.SESSION.delete('status');
-    await env.SESSION.delete('prs');
+    // Single source of truth for the cache key — imported from github.ts.
+    // Also wipe the legacy unprefixed key in case anything was written
+    // under it pre-bump.
+    await Promise.all([
+      env.SESSION.delete(STATUS_CACHE_KEY),
+      env.SESSION.delete('status'),
+      env.SESSION.delete('prs'),
+    ]);
   }
 
   // Redirect back to referer or home
