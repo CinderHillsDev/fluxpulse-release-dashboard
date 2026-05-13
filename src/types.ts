@@ -13,7 +13,26 @@ export interface RepoStatus {
   syncState: 'in-sync' | 'uat-ahead' | 'never-deployed' | 'unknown';
   openPrCount: number;
   unreleasedCommits: number;
+  /**
+   * Merged PRs that are on main but not yet deployed to UAT.
+   * Each row of the "Pending UAT" bucket on the release-queue page.
+   */
+  pendingUatPrs: MergedPr[];
+  /**
+   * Merged PRs in UAT but not yet in prod.
+   * Each row of the "Pending Prod" bucket on the release-queue page.
+   */
+  pendingProdPrs: MergedPr[];
   ciFailing: boolean;
+}
+
+export interface MergedPr {
+  number: number;
+  title: string;
+  author: string;
+  mergedAt: string;
+  url: string;
+  labels: string[];
 }
 
 export interface PR {

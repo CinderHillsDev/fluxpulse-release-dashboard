@@ -3,6 +3,7 @@ import type {
   RepoStatus,
   DeployInfo,
   PR,
+  MergedPr,
 } from '@/types';
 
 const GH_API = 'https://api.github.com';
@@ -14,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v2';
+export const STATUS_CACHE_KEY = 'status:v3';
 
 interface GitHubWorkflowRun {
   id: number;
@@ -194,6 +195,67 @@ async function fetchUnreleasedCommits(
   }
 }
 
+/**
+ * Returns the merged PRs whose merge commits sit on `headRef` but not on
+ * `baseRef`. Used to populate the release-queue page's two buckets:
+ *   - Pending UAT: fetchPendingPrs(repo, uatSha, "main")
+ *   - Pending Prod: fetchPendingPrs(repo, prodSha, uatSha)
+ *
+ * Implementation: GitHub's /compare endpoint returns commits between the
+ * two refs; closed PRs from /pulls?state=closed include merge_commit_sha,
+ * which we intersect against the commit set. Squash, rebase, and merge-
+ * commit strategies all set merge_commit_sha so this works regardless.
+ */
+async function fetchPendingPrs(
+  token: string,
+  repo: string,
+  baseRef: string | null,
+  headRef: string
+): Promise<MergedPr[]> {
+  if (!baseRef) return [];
+  try {
+    // Step 1: commits between baseRef and headRef
+    const cmpRes = await fetch(
+      `${GH_API}/repos/${GH_OWNER}/${repo}/compare/${baseRef}...${headRef}`,
+      { headers: getHeaders(token) }
+    );
+    if (!cmpRes.ok) return [];
+    const cmp = (await cmpRes.json()) as { commits?: { sha: string }[] };
+    const shas = new Set((cmp.commits ?? []).map((c) => c.sha));
+    if (shas.size === 0) return [];
+
+    // Step 2: recent closed PRs — intersect by merge_commit_sha
+    const prRes = await fetch(
+      `${GH_API}/repos/${GH_OWNER}/${repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100`,
+      { headers: getHeaders(token) }
+    );
+    if (!prRes.ok) return [];
+    const prs = (await prRes.json()) as Array<{
+      number: number;
+      title: string;
+      merged_at: string | null;
+      merge_commit_sha: string | null;
+      html_url: string;
+      user: { login: string };
+      labels: { name: string }[];
+    }>;
+
+    return prs
+      .filter((p) => p.merged_at && p.merge_commit_sha && shas.has(p.merge_commit_sha))
+      .map((p) => ({
+        number: p.number,
+        title: p.title,
+        author: p.user.login,
+        mergedAt: p.merged_at as string,
+        url: p.html_url,
+        labels: p.labels.map((l) => l.name),
+      }));
+  } catch (err) {
+    console.error(`fetchPendingPrs error for ${repo} ${baseRef}...${headRef}:`, err);
+    return [];
+  }
+}
+
 async function fetchAllOpenPRs(token: string): Promise<PR[]> {
   const prs: PR[] = [];
   for (const repo of REPOS) {
@@ -256,6 +318,16 @@ export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
 
       const syncState = determineSyncState(uatDeploy, prodDeploy);
 
+      // Merged-PR buckets for the release queue. Each call is two API
+      // requests (compare + pulls?state=closed); skipped when the relevant
+      // deploy SHA is missing.
+      const [pendingUatPrs, pendingProdPrs] = await Promise.all([
+        fetchPendingPrs(token, repo, uatDeploy?.version ?? null, 'main'),
+        uatDeploy && prodDeploy
+          ? fetchPendingPrs(token, repo, prodDeploy.version, uatDeploy.version ?? 'main')
+          : Promise.resolve([] as MergedPr[]),
+      ]);
+
       return {
         name: repo,
         latestTag,
@@ -264,6 +336,8 @@ export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
         syncState,
         openPrCount,
         unreleasedCommits,
+        pendingUatPrs,
+        pendingProdPrs,
         ciFailing: !ciPassing,
       };
     })
