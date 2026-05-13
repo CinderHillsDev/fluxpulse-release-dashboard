@@ -164,12 +164,16 @@ async function fetchOpenPRCount(token: string, repo: string): Promise<number> {
 async function fetchUnreleasedCommits(
   token: string,
   repo: string,
-  latestTag: string | null
+  baseRef: string | null
 ): Promise<number> {
-  if (!latestTag) return 0;
+  // baseRef can be a tag (e.g. "v1.2.3"), a short SHA (e.g. "f2ea479"), or
+  // a branch name. We pass uatDeploy.version (short SHA from the GitHub
+  // Deployments API) when no tag exists. Returns the count of commits on
+  // main that aren't yet reachable from baseRef.
+  if (!baseRef) return 0;
   try {
     const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/compare/${latestTag}...main`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/compare/${baseRef}...main`,
       {
         headers: getHeaders(token),
       }
@@ -213,19 +217,15 @@ async function fetchAllOpenPRs(token: string): Promise<PR[]> {
 }
 
 function determineSyncState(
-  latestTag: string | null,
   uatDeploy: DeployInfo | null,
   prodDeploy: DeployInfo | null
 ): 'in-sync' | 'uat-ahead' | 'never-deployed' | 'unknown' {
-  if (!latestTag) return 'unknown';
+  // Tags are no longer required — we run on a SHA-based release model.
+  // Compare the SHAs recorded by GitHub Deployments API for each env.
   if (!uatDeploy && !prodDeploy) return 'never-deployed';
-  if (!prodDeploy) return 'uat-ahead';
-
-  const uatVersion = uatDeploy?.version ?? latestTag;
-  const prodVersion = prodDeploy?.version ?? null;
-
-  if (!prodVersion) return 'never-deployed';
-  if (uatVersion === prodVersion) return 'in-sync';
+  if (uatDeploy && !prodDeploy) return 'uat-ahead';
+  if (!uatDeploy && prodDeploy) return 'unknown'; // prod-only deploy w/ no UAT history
+  if (uatDeploy!.version === prodDeploy!.version) return 'in-sync';
   return 'uat-ahead';
 }
 
@@ -241,9 +241,12 @@ export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
           checkCIStatus(token, repo),
         ]);
 
-      const unreleasedCommits = await fetchUnreleasedCommits(token, repo, latestTag);
+      // Compare commits on main against the SHA last deployed to UAT (or
+      // the latest tag as a fallback if the repo doesn't deploy to UAT).
+      const baseRef = uatDeploy?.version ?? latestTag;
+      const unreleasedCommits = await fetchUnreleasedCommits(token, repo, baseRef);
 
-      const syncState = determineSyncState(latestTag, uatDeploy, prodDeploy);
+      const syncState = determineSyncState(uatDeploy, prodDeploy);
 
       return {
         name: repo,
@@ -271,11 +274,14 @@ export async function cacheStatus(
   env: Env,
   token: string
 ): Promise<RepoStatus[]> {
-  const cached = await env.SESSION.get('status', { type: 'json' });
+  // Cache key is versioned so logic changes (e.g. SHA-based sync detection
+  // replacing tag-based) automatically bust stale entries on deploy.
+  const cacheKey = 'status:v2';
+  const cached = await env.SESSION.get(cacheKey, { type: 'json' });
   if (cached) return cached as RepoStatus[];
 
   const fresh = await getRepoStatus(token);
-  await env.SESSION.put('status', JSON.stringify(fresh), { expirationTtl: 300 });
+  await env.SESSION.put(cacheKey, JSON.stringify(fresh), { expirationTtl: 300 });
   return fresh;
 }
 
