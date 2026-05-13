@@ -1,0 +1,132 @@
+---
+import type { RepoStatus } from '@/types';
+
+interface Props {
+  repos: RepoStatus[];
+}
+
+const { repos } = Astro.props;
+
+function formatAge(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  const ms = Date.now() - new Date(dateStr).getTime();
+  const h = Math.floor(ms / 3_600_000);
+  const d = Math.floor(h / 24);
+  if (d > 0) return `${d}d`;
+  if (h > 0) return `${h}h`;
+  const m = Math.floor(ms / 60_000);
+  return m > 0 ? `${m}m` : 'now';
+}
+
+const syncStyles: Record<RepoStatus['syncState'], { dot: string; label: string; tooltip: string }> = {
+  'in-sync': { dot: 'bg-green-500', label: 'in sync', tooltip: 'UAT matches main HEAD' },
+  'uat-ahead': { dot: 'bg-amber-500', label: 'uat ahead', tooltip: 'UAT has commits not yet in prod' },
+  'never-deployed': { dot: 'bg-slate-400', label: 'never deployed', tooltip: 'No deployment records for this repo' },
+  'unknown': { dot: 'bg-slate-400', label: '—', tooltip: 'No releases yet' },
+};
+---
+
+<div class="overflow-x-auto border border-slate-200 rounded-lg bg-white">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+      <tr>
+        <th class="text-left font-semibold px-4 py-3">Repo</th>
+        <th class="text-left font-semibold px-3 py-3">Sync</th>
+        <th class="text-left font-semibold px-3 py-3">Tag</th>
+        <th class="text-left font-semibold px-3 py-3">UAT</th>
+        <th class="text-left font-semibold px-3 py-3">Prod</th>
+        <th class="text-right font-semibold px-3 py-3" title="Open pull requests">PRs</th>
+        <th class="text-right font-semibold px-3 py-3" title="Commits on main not yet released">Unreleased</th>
+        <th class="text-right font-semibold px-4 py-3">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {repos.map((repo) => {
+        const sync = syncStyles[repo.syncState];
+        return (
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-2.5 font-medium text-slate-900">
+              <a
+                href={`https://github.com/CinderHillsDev/${repo.name}`}
+                target="_blank"
+                rel="noreferrer"
+                class="hover:underline"
+              >
+                {repo.name}
+              </a>
+              {repo.ciFailing && (
+                <span class="ml-2 text-xs text-red-700" title="CI failing on main">⚠</span>
+              )}
+            </td>
+            <td class="px-3 py-2.5">
+              <span class="inline-flex items-center gap-1.5" title={sync.tooltip}>
+                <span class={`inline-block w-2 h-2 rounded-full ${sync.dot}`}></span>
+                <span class="text-xs text-slate-700">{sync.label}</span>
+              </span>
+            </td>
+            <td class="px-3 py-2.5 font-mono text-xs text-slate-700">{repo.latestTag || '—'}</td>
+            <td class="px-3 py-2.5 font-mono text-xs">
+              {repo.uatDeploy ? (
+                <span class="text-slate-900">
+                  {repo.uatDeploy.version}
+                  <span class="ml-1.5 text-slate-400">·</span>
+                  <span class="ml-1.5 text-slate-500">{formatAge(repo.uatDeploy.runAt)}</span>
+                </span>
+              ) : (
+                <span class="text-slate-400">—</span>
+              )}
+            </td>
+            <td class="px-3 py-2.5 font-mono text-xs">
+              {repo.prodDeploy ? (
+                <span class="text-slate-900">
+                  {repo.prodDeploy.version}
+                  <span class="ml-1.5 text-slate-400">·</span>
+                  <span class="ml-1.5 text-slate-500">{formatAge(repo.prodDeploy.runAt)}</span>
+                </span>
+              ) : (
+                <span class="text-slate-400">—</span>
+              )}
+            </td>
+            <td class="px-3 py-2.5 text-right text-slate-700">{repo.openPrCount}</td>
+            <td class="px-3 py-2.5 text-right">
+              {repo.unreleasedCommits > 0 ? (
+                <span class="text-amber-700 font-semibold">{repo.unreleasedCommits}</span>
+              ) : (
+                <span class="text-slate-400">0</span>
+              )}
+            </td>
+            <td class="px-4 py-2.5 text-right">
+              <div class="inline-flex gap-1.5">
+                {repo.unreleasedCommits > 0 && (
+                  <form method="POST" action="/api/dispatch" class="inline-block">
+                    <input type="hidden" name="repo" value={repo.name} />
+                    <button
+                      type="submit"
+                      class="px-2.5 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                      title="Dispatch deploy-uat.yml on this repo"
+                    >
+                      Release
+                    </button>
+                  </form>
+                )}
+                {repo.syncState === 'uat-ahead' && (
+                  <form method="POST" action="/api/dispatch" class="inline-block">
+                    <input type="hidden" name="repo" value={repo.name} />
+                    <input type="hidden" name="workflow" value="deploy-prod" />
+                    <button
+                      type="submit"
+                      class="px-2.5 py-1 text-xs font-medium bg-green-600 text-white rounded hover:bg-green-700 transition"
+                      title="Dispatch deploy-prod.yml on this repo"
+                    >
+                      Deploy Prod
+                    </button>
+                  </form>
+                )}
+              </div>
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>

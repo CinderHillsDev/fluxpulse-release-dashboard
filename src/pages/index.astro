@@ -2,7 +2,7 @@
 import { env } from 'cloudflare:workers';
 import Layout from '@/layouts/Layout.astro';
 import Navbar from '@/components/Navbar.astro';
-import RepoCard from '@/components/RepoCard.astro';
+import RepoTable from '@/components/RepoTable.astro';
 import { cacheStatus } from '@/lib/github';
 
 const typedEnv = env as Env;
@@ -38,10 +38,6 @@ const errorMessages: Record<string, string> = {
       </div>
     )}
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {repos.map((repo) => (
-        <RepoCard status={repo} />
-      ))}
-    </div>
+    <RepoTable repos={repos} />
   </main>
 </Layout>
