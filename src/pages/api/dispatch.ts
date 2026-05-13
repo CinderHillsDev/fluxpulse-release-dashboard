@@ -35,7 +35,8 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const repo = String(formData.get('repo') ?? '');
-  const bump = String(formData.get('bump') ?? 'patch');
+  // 'bump' kept in form schema for backward compat but unused — none of
+  // the app repos have a release.yml that bumps semver. Drop later.
   const workflow = String(formData.get('workflow') ?? 'release');
 
   if (!repo) {
@@ -47,9 +48,12 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const referer = request.headers.get('Referer');
+    // "Release" button → dispatch deploy-uat.yml (the UAT promotion workflow
+    // each repo already owns). "Deploy Prod" button → dispatch deploy-prod.yml.
+    // No release.yml — semver bumping isn't part of the model.
     const isRelease = workflow !== 'deploy-prod';
-    const workflowFile = isRelease ? 'release.yml' : 'deploy-prod.yml';
-    const inputs = isRelease ? { bump_type: bump === 'minor' ? 'minor' : 'patch' } : {};
+    const workflowFile = isRelease ? 'deploy-uat.yml' : 'deploy-prod.yml';
+    const inputs: Record<string, string> = {};
 
     // Trigger workflow_dispatch
     const dispatchRes = await fetch(
