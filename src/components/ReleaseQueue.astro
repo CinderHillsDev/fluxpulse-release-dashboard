@@ -18,14 +18,14 @@ function formatAge(dateStr: string): string {
 }
 
 const reposWithQueue = repos.filter(
-  (r) => r.pendingUatPrs.length > 0 || r.pendingProdPrs.length > 0
+  (r) => r.pendingUatItems.length > 0 || r.pendingProdItems.length > 0
 );
 ---
 
 {reposWithQueue.length === 0 ? (
   <div class="text-center py-12 bg-white border border-slate-200 rounded-lg">
     <p class="text-slate-600">Nothing queued for UAT or prod.</p>
-    <p class="text-xs text-slate-400 mt-1">Every merged PR has reached its target env.</p>
+    <p class="text-xs text-slate-400 mt-1">Every commit on main has reached its target env.</p>
   </div>
 ) : (
   <div class="space-y-6">
@@ -39,13 +39,13 @@ const reposWithQueue = repos.filter(
               </a>
             </h3>
             <p class="text-xs text-slate-500 mt-0.5">
-              {repo.pendingUatPrs.length} pending UAT
+              {repo.pendingUatItems.length} pending UAT
               {' · '}
-              {repo.pendingProdPrs.length} pending prod
+              {repo.pendingProdItems.length} pending prod
             </p>
           </div>
           <div class="flex gap-2">
-            {repo.pendingUatPrs.length > 0 && (
+            {repo.pendingUatItems.length > 0 && (
               <form method="POST" action="/api/dispatch">
                 <input type="hidden" name="repo" value={repo.name} />
                 <button
@@ -57,7 +57,7 @@ const reposWithQueue = repos.filter(
                 </button>
               </form>
             )}
-            {repo.pendingProdPrs.length > 0 && (
+            {repo.pendingProdItems.length > 0 && (
               <form method="POST" action="/api/dispatch">
                 <input type="hidden" name="repo" value={repo.name} />
                 <input type="hidden" name="workflow" value="deploy-prod" />
@@ -73,23 +73,25 @@ const reposWithQueue = repos.filter(
           </div>
         </div>
 
-        {repo.pendingUatPrs.length > 0 && (
+        {repo.pendingUatItems.length > 0 && (
           <div class="border-b border-slate-100">
             <div class="px-6 py-2 bg-blue-50/50 flex items-center gap-2">
               <span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"></span>
               <span class="text-xs font-semibold uppercase tracking-wide text-blue-700">Pending UAT</span>
-              <span class="text-xs text-slate-500">— merged on main, not yet deployed</span>
+              <span class="text-xs text-slate-500">— on main, not yet deployed</span>
             </div>
             <table class="w-full text-sm">
               <tbody class="divide-y divide-slate-100">
-                {repo.pendingUatPrs.map((pr) => (
+                {repo.pendingUatItems.map((item) => (
                   <tr class="hover:bg-slate-50">
-                    <td class="px-6 py-2 w-16 text-slate-500 text-xs font-mono">
-                      <a href={pr.url} target="_blank" rel="noreferrer" class="hover:text-blue-700 hover:underline">#{pr.number}</a>
+                    <td class="px-6 py-2 w-20 text-slate-500 text-xs font-mono">
+                      <a href={item.url} target="_blank" rel="noreferrer" class="hover:text-blue-700 hover:underline">
+                        {item.prNumber ? `#${item.prNumber}` : item.shortSha}
+                      </a>
                     </td>
-                    <td class="py-2 text-slate-900">{pr.title}</td>
-                    <td class="px-3 py-2 w-32 text-xs text-slate-600">{pr.author}</td>
-                    <td class="px-6 py-2 w-24 text-right text-xs text-slate-500">{formatAge(pr.mergedAt)}</td>
+                    <td class="py-2 text-slate-900">{item.title}</td>
+                    <td class="px-3 py-2 w-32 text-xs text-slate-600">{item.author}</td>
+                    <td class="px-6 py-2 w-24 text-right text-xs text-slate-500">{formatAge(item.date)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -97,7 +99,7 @@ const reposWithQueue = repos.filter(
           </div>
         )}
 
-        {repo.pendingProdPrs.length > 0 && (
+        {repo.pendingProdItems.length > 0 && (
           <div>
             <div class="px-6 py-2 bg-green-50/50 flex items-center gap-2">
               <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
@@ -106,14 +108,16 @@ const reposWithQueue = repos.filter(
             </div>
             <table class="w-full text-sm">
               <tbody class="divide-y divide-slate-100">
-                {repo.pendingProdPrs.map((pr) => (
+                {repo.pendingProdItems.map((item) => (
                   <tr class="hover:bg-slate-50">
-                    <td class="px-6 py-2 w-16 text-slate-500 text-xs font-mono">
-                      <a href={pr.url} target="_blank" rel="noreferrer" class="hover:text-blue-700 hover:underline">#{pr.number}</a>
+                    <td class="px-6 py-2 w-20 text-slate-500 text-xs font-mono">
+                      <a href={item.url} target="_blank" rel="noreferrer" class="hover:text-blue-700 hover:underline">
+                        {item.prNumber ? `#${item.prNumber}` : item.shortSha}
+                      </a>
                     </td>
-                    <td class="py-2 text-slate-900">{pr.title}</td>
-                    <td class="px-3 py-2 w-32 text-xs text-slate-600">{pr.author}</td>
-                    <td class="px-6 py-2 w-24 text-right text-xs text-slate-500">{formatAge(pr.mergedAt)}</td>
+                    <td class="py-2 text-slate-900">{item.title}</td>
+                    <td class="px-3 py-2 w-32 text-xs text-slate-600">{item.author}</td>
+                    <td class="px-6 py-2 w-24 text-right text-xs text-slate-500">{formatAge(item.date)}</td>
                   </tr>
                 ))}
               </tbody>

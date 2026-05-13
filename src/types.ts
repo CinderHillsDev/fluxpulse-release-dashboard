@@ -14,25 +14,34 @@ export interface RepoStatus {
   openPrCount: number;
   unreleasedCommits: number;
   /**
-   * Merged PRs that are on main but not yet deployed to UAT.
-   * Each row of the "Pending UAT" bucket on the release-queue page.
+   * Commits on main but not yet deployed to UAT.
+   * Each commit may be enriched with the PR it landed via (PR title +
+   * number) when one is detected from the commit message; otherwise the
+   * raw commit message is shown. Direct pushes to main therefore stay
+   * visible even when no PR flow was used.
    */
-  pendingUatPrs: MergedPr[];
+  pendingUatItems: QueuedItem[];
   /**
-   * Merged PRs in UAT but not yet in prod.
-   * Each row of the "Pending Prod" bucket on the release-queue page.
+   * Same shape, but for commits in UAT and not yet promoted to prod.
    */
-  pendingProdPrs: MergedPr[];
+  pendingProdItems: QueuedItem[];
   ciFailing: boolean;
 }
 
-export interface MergedPr {
-  number: number;
-  title: string;
-  author: string;
-  mergedAt: string;
-  url: string;
-  labels: string[];
+/**
+ * A single row in the Pending UAT / Pending Prod buckets. Always backed
+ * by a commit; optionally enriched with PR info when the commit is the
+ * tip of a merged PR (squash, rebase, or merge-commit strategies).
+ */
+export interface QueuedItem {
+  sha: string;            // commit SHA (full)
+  shortSha: string;       // first 8 chars
+  title: string;          // PR title if available, else first line of commit msg
+  author: string;         // GitHub login (PR.user) or commit.author.name fallback
+  date: string;           // PR merged_at or commit.committer.date
+  url: string;            // PR URL if linked, else commit URL on GitHub
+  prNumber: number | null;
+  labels: string[];       // PR labels (empty for direct commits)
 }
 
 export interface PR {
