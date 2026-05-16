@@ -440,12 +440,24 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
 }
 
 export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
-  const results = await Promise.allSettled(
-    REPOS.map((repo) => fetchRepoStatus(token, repo))
-  );
-  return results
-    .filter((r) => r.status === 'fulfilled')
-    .map((r) => (r as PromiseFulfilledResult<RepoStatus>).value);
+  const BATCH_SIZE = 4;
+  const allResults: RepoStatus[] = [];
+
+  for (let i = 0; i < REPOS.length; i += BATCH_SIZE) {
+    const batch = REPOS.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map((repo) => fetchRepoStatus(token, repo))
+    );
+    for (const r of batchResults) {
+      if (r.status === 'fulfilled') {
+        allResults.push(r.value);
+      } else {
+        console.error('Batch error:', r.reason);
+      }
+    }
+  }
+
+  return allResults;
 }
 
 export async function getAllPRs(token: string): Promise<PR[]> {
