@@ -22,6 +22,9 @@ const dispatchErrorMessages: Record<string, string> = {
   dispatch_unprocessable: `Workflow dispatch was rejected by GitHub (422). The workflow may not have workflow_dispatch enabled or the ref is invalid.`,
   dispatch_failed: `Failed to dispatch the workflow. Check Cloudflare Worker logs for details.`,
 };
+
+const batchOk = url.searchParams.get('batch_ok');
+const batchError = url.searchParams.get('batch_error');
 ---
 
 <Layout title="Release Dashboard - Release Queue">
@@ -106,6 +109,31 @@ const dispatchErrorMessages: Record<string, string> = {
           setTimeout(poll, 3000);
         })();
       </script>
+    )}
+
+    {batchOk && (
+      <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <p class="text-green-800">
+          <strong>Batch dispatched:</strong> workflows triggered for{' '}
+          {batchOk.split(',').map((r, i, arr) => (
+            <span>
+              <code class="font-mono">{r}</code>{i < arr.length - 1 ? ', ' : ''}
+            </span>
+          ))}.
+        </p>
+      </div>
+    )}
+    {batchError && (
+      <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-800">
+          <strong>Batch dispatch failed</strong> for{' '}
+          {batchError.split(',').map((r, i, arr) => (
+            <span>
+              <code class="font-mono">{r}</code>{i < arr.length - 1 ? ', ' : ''}
+            </span>
+          ))}. Check Cloudflare Worker logs for details.
+        </p>
+      </div>
     )}
 
     <div class="mb-6">
