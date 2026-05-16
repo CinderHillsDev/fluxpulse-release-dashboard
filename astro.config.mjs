@@ -1,13 +1,10 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import cloudflare from '@astrojs/cloudflare';
+import nodejs from '@astrojs/node';
 
 export default defineConfig({
   output: 'server',
-  adapter: cloudflare({
-    imageService: 'compile',
-    platformProxy: { enabled: true },
-  }),
+  adapter: nodejs({ mode: 'standalone' }),
   integrations: [],
   trailingSlash: 'ignore',
   compressHTML: true,
