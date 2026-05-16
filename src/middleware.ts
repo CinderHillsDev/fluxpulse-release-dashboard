@@ -2,9 +2,16 @@ import { defineMiddleware } from 'astro:middleware';
 import { env as cfEnv } from 'cloudflare:workers';
 
 const env = cfEnv as any as Env;
+const isLocal = typeof env === 'object' && !('SESSION' in env);
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const path = context.url.pathname;
+
+  // Skip auth for local development
+  if (isLocal) {
+    return next();
+  }
+
   if (path.startsWith('/api/auth/') || path.startsWith('/auth/')) {
     return next();
   }

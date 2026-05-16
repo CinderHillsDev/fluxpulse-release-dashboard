@@ -248,6 +248,15 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                     )}
                   </>
                 )}
+                <button
+                  type="button"
+                  onclick={`window.refreshRepo('${repo.name}')`}
+                  data-refresh={repo.name}
+                  class="px-2.5 py-1 text-xs font-medium bg-slate-300 text-slate-700 rounded hover:bg-slate-400 transition"
+                  title="Refresh this repo's status"
+                >
+                  ↻
+                </button>
               </div>
             </td>
           </tr>

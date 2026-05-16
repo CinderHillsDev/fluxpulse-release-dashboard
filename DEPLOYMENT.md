@@ -97,8 +97,11 @@ npm run preview  # Starts local Wrangler dev server
 ## Local Development
 
 1. Copy `.dev.vars.example` to `.dev.vars`
-2. Fill in GitHub OAuth App credentials
+2. Add your GitHub PAT token:
+   ```
+   CF_GH_PAT_FluxPulseReleaseDashboard=ghp_xxxxxxxxxxxx
+   ```
+   (Get a token from https://github.com/settings/tokens with repo read access)
 3. Run `npm run dev`
-4. Server will start on `http://localhost:3000`
-
-Wrangler's `npm run dev` automatically emulates KV locally.
+4. Open `http://localhost:3000` in your browser
+5. Dashboard will load without requiring authentication locally

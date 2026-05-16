@@ -15,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v11';
+export const STATUS_CACHE_KEY = 'status:v12';
 
 interface GitHubWorkflowRun {
   id: number;
@@ -58,7 +58,7 @@ function getHeaders(token: string) {
   };
 }
 
-async function fetchLatestTag(token: string, repo: string): Promise<string | null> {
+export async function fetchLatestTag(token: string, repo: string): Promise<string | null> {
   try {
     const res = await fetch(`${GH_API}/repos/${GH_OWNER}/${repo}/tags?per_page=1`, {
       headers: getHeaders(token),
@@ -76,7 +76,7 @@ async function fetchLatestTag(token: string, repo: string): Promise<string | nul
   }
 }
 
-async function fetchDeploymentByEnvironment(
+export async function fetchDeploymentByEnvironment(
   token: string,
   repo: string,
   environment: string
@@ -148,7 +148,7 @@ async function fetchDeploymentByEnvironment(
   }
 }
 
-async function checkCIStatus(
+export async function checkCIStatus(
   token: string,
   repo: string
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
@@ -381,7 +381,7 @@ async function fetchHealthStatus(url: string): Promise<'up' | 'down' | 'unknown'
   }
 }
 
-async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus> {
+export async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus> {
   const endpoints = HEALTH_ENDPOINTS[repo as keyof typeof HEALTH_ENDPOINTS];
   const isReleaseOnly = RELEASE_ONLY_REPOS.has(repo as any);
 
@@ -439,20 +439,13 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
   };
 }
 
-export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
-  const BATCH_SIZE = 3;
+export async function getRepoStatus(token: string, repos?: string[]): Promise<RepoStatus[]> {
+  const reposToFetch = repos ?? REPOS;
   const allResults: RepoStatus[] = [];
 
-  for (let i = 0; i < REPOS.length; i += BATCH_SIZE) {
-    const batch = REPOS.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.allSettled(
-      batch.map((repo) => fetchRepoStatus(token, repo))
-    );
-    for (const r of batchResults) {
-      if (r.status === 'fulfilled') {
-        allResults.push(r.value);
-      }
-    }
+  for (const repo of reposToFetch) {
+    const status = await fetchRepoStatus(token, repo);
+    allResults.push(status);
   }
 
   return allResults;

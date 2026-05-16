@@ -3,14 +3,13 @@ import { env } from 'cloudflare:workers';
 import Layout from '@/layouts/Layout.astro';
 import Navbar from '@/components/Navbar.astro';
 import RepoTable from '@/components/RepoTable.astro';
-import { cacheStatus } from '@/lib/github';
-import { GH_OWNER } from '@/repos';
+import { getRepoStatus } from '@/lib/github';
 
 const typedEnv = env as Env;
 const token = typedEnv.CF_GH_PAT_FluxPulseReleaseDashboard;
 
-const { repos, fetchedAt } = await cacheStatus(typedEnv, token);
-const now = new Date(fetchedAt).toLocaleString();
+const repos = await getRepoStatus(token);
+const now = new Date().toLocaleString();
 
 const url = new URL(Astro.request.url);
 const authError = url.searchParams.get('auth_error');
@@ -158,5 +157,21 @@ const batchError = url.searchParams.get('batch_error');
     )}
 
     <RepoTable repos={repos} />
+
+    <script>
+      window.refreshRepo = async function(repoName) {
+        const btn = document.querySelector(`button[data-refresh="${repoName}"]`);
+        if (btn) btn.disabled = true;
+        try {
+          const res = await fetch(`/api/repo-status?repo=${encodeURIComponent(repoName)}`);
+          if (res.ok) {
+            const data = await res.json();
+            location.reload();
+          }
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+      };
+    </script>
   </main>
 </Layout>
