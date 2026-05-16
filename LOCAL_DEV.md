@@ -34,6 +34,8 @@ docker-compose logs -f
 docker-compose down
 ```
 
+**In OrbStack:** The container will appear under the `fluxpulse-release-dashboard` group. You can see it in OrbStack's UI with the service labeled "Release Dashboard".
+
 The dashboard will be available at `http://localhost:3000` and restart automatically if your machine reboots. Your `.env` file is git-ignored, so your token won't be committed.
 
 ---

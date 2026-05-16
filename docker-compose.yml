@@ -9,3 +9,7 @@ services:
       CF_GH_PAT_FluxPulseReleaseDashboard: ${GH_PAT}
     restart: unless-stopped
     container_name: fluxpulse-release-dashboard
+    labels:
+      com.docker.compose.project: "fluxpulse"
+      service.name: "Release Dashboard"
+      service.group: "fluxpulse"
