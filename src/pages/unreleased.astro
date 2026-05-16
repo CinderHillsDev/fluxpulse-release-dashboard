@@ -10,12 +10,37 @@ const token = typedEnv.GITHUB_TOKEN;
 
 const { repos, fetchedAt } = await cacheStatus(typedEnv, token);
 const now = new Date(fetchedAt).toLocaleString();
+
+const url = new URL(Astro.request.url);
+const dispatchError = url.searchParams.get('dispatch_error');
+const dispatchOk = url.searchParams.get('dispatch_ok');
+
+const dispatchErrorMessages: Record<string, string> = {
+  dispatch_forbidden: `The GitHub token doesn't have Actions write permission. Update the GITHUB_TOKEN Cloudflare secret with a PAT that has "Actions: Read and write".`,
+  dispatch_unprocessable: `Workflow dispatch was rejected by GitHub (422). The workflow may not have workflow_dispatch enabled or the ref is invalid.`,
+  dispatch_failed: `Failed to dispatch the workflow. Check Cloudflare Worker logs for details.`,
+};
 ---
 
 <Layout title="Release Dashboard - Release Queue">
   <Navbar currentPage="unreleased" lastUpdated={now} />
 
   <main class="max-w-7xl mx-auto px-4 py-8">
+    {dispatchError && (
+      <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p class="text-red-800">
+          <strong>Dispatch failed:</strong> {dispatchErrorMessages[dispatchError] || dispatchError}
+        </p>
+      </div>
+    )}
+    {dispatchOk && (
+      <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <p class="text-green-800">
+          <strong>Dispatched:</strong> deploy-uat workflow triggered for <code class="font-mono">{dispatchOk}</code>. Check GitHub Actions for progress.
+        </p>
+      </div>
+    )}
+
     <div class="mb-6">
       <h2 class="text-2xl font-bold text-slate-900">Release Queue</h2>
       <p class="text-sm text-slate-600 mt-1">
