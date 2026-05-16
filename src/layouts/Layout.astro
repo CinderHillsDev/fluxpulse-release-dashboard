@@ -20,8 +20,40 @@ const { title = 'Release Dashboard' } = Astro.props;
     <slot />
 
     <script>
-      // Auto-refresh every 30 seconds
-      setTimeout(() => location.reload(), 30_000);
+      // Auto-refresh countdown — 60 seconds, resets on user interaction
+      const COUNTDOWN_START = 60;
+      let remaining = COUNTDOWN_START;
+      let intervalId: ReturnType<typeof setInterval>;
+
+      function updateDisplay() {
+        const el = document.getElementById('auto-refresh-countdown');
+        if (el) el.textContent = `${remaining}s`;
+      }
+
+      function resetCountdown() {
+        remaining = COUNTDOWN_START;
+        updateDisplay();
+      }
+
+      function tick() {
+        remaining -= 1;
+        updateDisplay();
+        if (remaining <= 0) {
+          clearInterval(intervalId);
+          location.reload();
+        }
+      }
+
+      // Start ticking once DOM is ready
+      document.addEventListener('DOMContentLoaded', () => {
+        updateDisplay();
+        intervalId = setInterval(tick, 1000);
+      });
+
+      // Reset countdown on any active user interaction
+      ['click', 'keydown', 'scroll', 'mousemove', 'touchstart'].forEach((evt) => {
+        document.addEventListener(evt, resetCountdown, { passive: true });
+      });
     </script>
   </body>
 </html>

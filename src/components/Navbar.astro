@@ -42,12 +42,13 @@ const isActive = (page: string) =>
 
         <!-- Actions -->
         <div class="flex items-center gap-4 pl-4 border-l border-slate-200">
-          <form method="POST" action="/api/cache">
+          <form method="POST" action="/api/cache" id="refresh-form">
             <button
               type="submit"
-              class="px-3 py-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition"
+              class="group px-3 py-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition"
             >
-              ↻ Refresh
+              <span class="group-hover:hidden">↻ <span id="auto-refresh-countdown" class="tabular-nums">60s</span></span>
+              <span class="hidden group-hover:inline">↻ Refresh now</span>
             </button>
           </form>
 
@@ -66,3 +67,12 @@ const isActive = (page: string) =>
     )}
   </div>
 </nav>
+
+<script>
+  // When the user manually submits the refresh form, clear the countdown display
+  // so there's no stale number visible during the page reload.
+  document.getElementById('refresh-form')?.addEventListener('submit', () => {
+    const el = document.getElementById('auto-refresh-countdown');
+    if (el) el.textContent = '…';
+  });
+</script>
