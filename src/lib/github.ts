@@ -1,4 +1,4 @@
-import { REPOS, GH_OWNER } from '@/repos';
+import { REPOS, GH_OWNER, HEALTH_ENDPOINTS } from '@/repos';
 import type {
   RepoStatus,
   DeployInfo,
@@ -15,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v8';
+export const STATUS_CACHE_KEY = 'status:v9';
 
 interface GitHubWorkflowRun {
   id: number;
@@ -369,14 +369,26 @@ function determineSyncState(
   return 'uat-ahead';
 }
 
+async function fetchHealthStatus(url: string): Promise<'up' | 'down' | 'unknown'> {
+  try {
+    const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+    return res.ok || res.status < 500 ? 'up' : 'down';
+  } catch {
+    return 'down';
+  }
+}
+
 async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus> {
-  const [latestTag, uatDeploy, prodDeploy, openPrCount, ciResult] =
+  const endpoints = HEALTH_ENDPOINTS[repo as keyof typeof HEALTH_ENDPOINTS];
+  const [latestTag, uatDeploy, prodDeploy, openPrCount, ciResult, uatHealth, prodHealth] =
     await Promise.all([
       fetchLatestTag(token, repo),
       fetchDeploymentByEnvironment(token, repo, 'uat'),
       fetchDeploymentByEnvironment(token, repo, 'production'),
       fetchOpenPRCount(token, repo),
       checkCIStatus(token, repo),
+      endpoints?.uat ? fetchHealthStatus(endpoints.uat) : Promise.resolve('unknown' as const),
+      endpoints?.prod ? fetchHealthStatus(endpoints.prod) : Promise.resolve('unknown' as const),
     ]);
 
   const baseRef = uatDeploy?.version ?? latestTag;
@@ -405,6 +417,8 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
     ciRunUrl: ciResult.runUrl,
     ciConclusion: ciResult.conclusion,
     ciStatus: ciResult.status,
+    uatHealth,
+    prodHealth,
   };
 }
 

@@ -37,10 +37,35 @@ function ciLabel(repo: RepoStatus): { dot: string; label: string } {
 }
 ---
 
+<!-- Sticky action bar (hidden until ≥1 checkbox is checked) -->
+<div
+  id="batch-bar"
+  class="hidden sticky top-0 z-10 mb-3 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 shadow-sm"
+>
+  <span id="batch-count" class="text-sm font-medium text-blue-800">0 selected</span>
+  <form id="batch-form" method="POST" action="/api/dispatch-batch" class="inline-flex gap-2">
+    <!-- repos[] inputs are injected by JS -->
+    <button
+      type="submit"
+      class="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+    >
+      Release selected to UAT
+    </button>
+  </form>
+</div>
+
 <div class="overflow-x-auto border border-slate-200 rounded-lg bg-white">
   <table class="min-w-full text-sm">
     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
       <tr>
+        <th class="px-4 py-3 w-8">
+          <input
+            type="checkbox"
+            id="check-all"
+            class="cursor-pointer accent-blue-600"
+            title="Select all eligible repos"
+          />
+        </th>
         <th class="text-left font-semibold px-4 py-3">Repo</th>
         <th class="text-left font-semibold px-3 py-3">CI</th>
         <th class="text-left font-semibold px-3 py-3">Sync</th>
@@ -58,6 +83,18 @@ function ciLabel(repo: RepoStatus): { dot: string; label: string } {
         const ci = ciLabel(repo);
         return (
           <tr class="hover:bg-slate-50">
+            <td class="px-4 py-2.5 w-8">
+              {(repo.unreleasedCommits > 0 || repo.uatDeploy?.conclusion === 'failure') ? (
+                <input
+                  type="checkbox"
+                  class="repo-checkbox cursor-pointer accent-blue-600"
+                  data-repo={repo.name}
+                  title={`Select ${repo.name}`}
+                />
+              ) : (
+                <span />
+              )}
+            </td>
             <td class="px-4 py-2.5 font-medium text-slate-900">
               <a
                 href={`https://github.com/CinderHillsDev/${repo.name}`}
@@ -97,6 +134,12 @@ function ciLabel(repo: RepoStatus): { dot: string; label: string } {
                   )}
                   <span class="ml-1.5 text-slate-400">·</span>
                   <span class="ml-1.5 text-slate-500">{formatAge(repo.uatDeploy.runAt)}</span>
+                  {repo.uatHealth === 'up' && (
+                    <sup class="ml-1 text-green-500" title="UAT health: up">●</sup>
+                  )}
+                  {repo.uatHealth === 'down' && (
+                    <sup class="ml-1 text-red-500" title="UAT health: down">●</sup>
+                  )}
                 </a>
               ) : (
                 <span class="text-slate-400">—</span>
@@ -111,6 +154,12 @@ function ciLabel(repo: RepoStatus): { dot: string; label: string } {
                   )}
                   <span class="ml-1.5 text-slate-400">·</span>
                   <span class="ml-1.5 text-slate-500">{formatAge(repo.prodDeploy.runAt)}</span>
+                  {repo.prodHealth === 'up' && (
+                    <sup class="ml-1 text-green-500" title="Prod health: up">●</sup>
+                  )}
+                  {repo.prodHealth === 'down' && (
+                    <sup class="ml-1 text-red-500" title="Prod health: down">●</sup>
+                  )}
                 </a>
               ) : (
                 <span class="text-slate-400">—</span>
@@ -159,3 +208,46 @@ function ciLabel(repo: RepoStatus): { dot: string; label: string } {
     </tbody>
   </table>
 </div>
+
+<script>
+  const bar = document.getElementById('batch-bar') as HTMLDivElement;
+  const countEl = document.getElementById('batch-count') as HTMLSpanElement;
+  const form = document.getElementById('batch-form') as HTMLFormElement;
+  const checkAll = document.getElementById('check-all') as HTMLInputElement;
+  const checkboxes = () => Array.from(document.querySelectorAll<HTMLInputElement>('.repo-checkbox'));
+
+  function syncBar() {
+    const checked = checkboxes().filter((cb) => cb.checked);
+    const n = checked.length;
+    if (n > 0) {
+      bar.classList.remove('hidden');
+      bar.classList.add('flex');
+      countEl.textContent = `${n} selected`;
+      // Rebuild repos[] hidden inputs
+      form.querySelectorAll('input[name="repos"]').forEach((el) => el.remove());
+      for (const cb of checked) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'repos';
+        input.value = cb.dataset.repo ?? '';
+        form.appendChild(input);
+      }
+    } else {
+      bar.classList.add('hidden');
+      bar.classList.remove('flex');
+    }
+    // Sync header checkbox state
+    const all = checkboxes();
+    checkAll.indeterminate = n > 0 && n < all.length;
+    checkAll.checked = all.length > 0 && n === all.length;
+  }
+
+  checkAll.addEventListener('change', () => {
+    checkboxes().forEach((cb) => { cb.checked = checkAll.checked; });
+    syncBar();
+  });
+
+  document.addEventListener('change', (e) => {
+    if ((e.target as HTMLElement).classList.contains('repo-checkbox')) syncBar();
+  });
+</script>

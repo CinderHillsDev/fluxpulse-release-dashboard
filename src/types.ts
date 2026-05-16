@@ -29,6 +29,8 @@ export interface RepoStatus {
   ciRunUrl: string | null;
   ciConclusion: string | null;  // success | failure | cancelled | null (when in_progress)
   ciStatus: string | null;      // queued | in_progress | completed
+  uatHealth: 'up' | 'down' | 'unknown';
+  prodHealth: 'up' | 'down' | 'unknown';
 }
 
 /**
