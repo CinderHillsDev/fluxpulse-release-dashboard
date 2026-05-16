@@ -14,5 +14,15 @@ binding = "SESSION"
 id = "f32b89ce203a432b831e4000ffece4c2"
 preview_id = "f32b89ce203a432b831e4000ffece4c2"
 
-# Secrets — set via: wrangler secret put <NAME>
+[env.production]
+account_id = "3e9a9a6915748025fc2f087f981f7476"
+routes = [
+  { pattern = "release-dashboard.fluxpulse.app/*", zone_name = "fluxpulse.app" }
+]
+
+[[env.production.kv_namespaces]]
+binding = "SESSION"
+id = "f32b89ce203a432b831e4000ffece4c2"
+
+# Secrets — set via: wrangler secret put <NAME> --env production
 #   CF_GH_PAT_FluxPulseReleaseDashboard, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
