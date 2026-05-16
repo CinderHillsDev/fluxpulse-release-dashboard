@@ -68,28 +68,32 @@ export const POST: APIRoute = async ({ request }) => {
       }
     );
 
+    const redirectBase = referer ? new URL(referer).pathname : '/';
+
     if (!dispatchRes.ok) {
-      return new Response(JSON.stringify({ error: 'Failed to dispatch workflow' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
+      const detail = await dispatchRes.text().catch(() => '');
+      const code = dispatchRes.status === 403 ? 'dispatch_forbidden'
+        : dispatchRes.status === 422 ? 'dispatch_unprocessable'
+        : 'dispatch_failed';
+      console.error(`dispatch failed ${dispatchRes.status} for ${repo}/${workflowFile}:`, detail);
+      return new Response(null, {
+        status: 302,
+        headers: { Location: `${redirectBase}?dispatch_error=${code}&repo=${encodeURIComponent(repo)}` },
       });
     }
 
     return new Response(null, {
       status: 302,
-      headers: {
-        Location: referer || '/',
-      },
+      headers: { Location: `${redirectBase}?dispatch_ok=${encodeURIComponent(repo)}` },
     });
   } catch (error) {
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    const redirectBase = request.headers.get('Referer')
+      ? new URL(request.headers.get('Referer')!).pathname
+      : '/';
+    console.error('dispatch error:', error);
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${redirectBase}?dispatch_error=dispatch_failed` },
+    });
   }
 };
