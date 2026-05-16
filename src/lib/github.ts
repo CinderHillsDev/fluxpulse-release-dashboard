@@ -15,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v6';
+export const STATUS_CACHE_KEY = 'status:v7';
 
 interface GitHubWorkflowRun {
   id: number;
@@ -82,57 +82,65 @@ async function fetchDeploymentByEnvironment(
   environment: string
 ): Promise<DeployInfo | null> {
   try {
-    // Fetch latest deployment to the environment
+    // Fetch recent deployments. We need up to ~5 so we can find the last
+    // *successful* one — a failed deploy still creates a record at the
+    // current SHA, which would otherwise make unreleased/pending counts
+    // appear as zero even though UAT is running old code.
     const deployRes = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/deployments?environment=${environment}&per_page=1`,
-      {
-        headers: getHeaders(token),
-      }
+      `${GH_API}/repos/${GH_OWNER}/${repo}/deployments?environment=${environment}&per_page=5`,
+      { headers: getHeaders(token) }
     );
     if (!deployRes.ok) {
-      console.error(
-        `fetchDeploymentByEnvironment failed for ${repo}/${environment}:`,
-        deployRes.status
-      );
+      console.error(`fetchDeploymentByEnvironment failed for ${repo}/${environment}:`, deployRes.status);
       return null;
     }
     const deployments = (await deployRes.json()) as GitHubDeployment[];
-    const deployment = deployments[0];
-    if (!deployment) return null;
+    if (deployments.length === 0) return null;
 
-    // Fetch deployment status to get the result
-    const statusRes = await fetch(`${deployment.statuses_url}?per_page=1`, {
+    // Fetch statuses for the most recent deployment to get latest conclusion.
+    const latestDeploy = deployments[0];
+    const latestStatusRes = await fetch(`${latestDeploy.statuses_url}?per_page=1`, {
       headers: getHeaders(token),
     });
-    if (!statusRes.ok) {
-      console.error(
-        `fetchDeploymentStatus failed for ${repo}/${environment}:`,
-        statusRes.status
-      );
-      return null;
-    }
-    const statuses = (await statusRes.json()) as GitHubDeploymentStatus[];
-    const status = statuses[0];
+    const latestStatuses = latestStatusRes.ok
+      ? ((await latestStatusRes.json()) as GitHubDeploymentStatus[])
+      : [];
+    const latestStatus = latestStatuses[0];
+    const latestConclusion: DeployInfo['conclusion'] =
+      latestStatus?.state === 'success' ? 'success'
+      : latestStatus?.state === 'failure' ? 'failure'
+      : 'in_progress';
 
-    // Use short commit SHA as version
-    const version = deployment.sha.substring(0, 7);
+    // Find the last successful deployment to use its SHA as the baseline for
+    // commit comparisons (pendingUatItems, unreleasedCommits). When the latest
+    // deploy failed, this will be an older SHA, surfacing the real pending queue.
+    let successfulDeploy = latestConclusion === 'success' ? latestDeploy : null;
+    if (!successfulDeploy) {
+      for (const dep of deployments.slice(1)) {
+        const sRes = await fetch(`${dep.statuses_url}?per_page=1`, { headers: getHeaders(token) });
+        if (!sRes.ok) continue;
+        const ss = (await sRes.json()) as GitHubDeploymentStatus[];
+        if (ss[0]?.state === 'success') {
+          successfulDeploy = dep;
+          break;
+        }
+      }
+    }
+
+    // version = last successful SHA (for comparison); falls back to latest
+    // deploy SHA when no successful deploy exists yet.
+    const baseDeploy = successfulDeploy ?? latestDeploy;
+    const version = baseDeploy.sha.substring(0, 7);
+    const runAt = latestStatus?.updated_at ?? latestDeploy.updated_at;
 
     return {
       version,
-      runAt: status?.updated_at ?? deployment.updated_at,
+      runAt,
       runUrl: `https://github.com/${GH_OWNER}/${repo}/deployments`,
-      conclusion:
-        status?.state === 'success'
-          ? 'success'
-          : status?.state === 'failure'
-            ? 'failure'
-            : 'in_progress',
+      conclusion: latestConclusion,
     };
   } catch (err) {
-    console.error(
-      `fetchDeploymentByEnvironment error for ${repo}/${environment}:`,
-      err
-    );
+    console.error(`fetchDeploymentByEnvironment error for ${repo}/${environment}:`, err);
     return null;
   }
 }

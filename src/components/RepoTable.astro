@@ -67,8 +67,11 @@ const syncStyles: Record<RepoStatus['syncState'], { dot: string; label: string; 
             <td class="px-3 py-2.5 font-mono text-xs text-slate-700">{repo.latestTag || '—'}</td>
             <td class="px-3 py-2.5 font-mono text-xs">
               {repo.uatDeploy ? (
-                <span class="text-slate-900">
+                <span class={repo.uatDeploy.conclusion === 'failure' ? 'text-red-700' : 'text-slate-900'}>
                   {repo.uatDeploy.version}
+                  {repo.uatDeploy.conclusion === 'failure' && (
+                    <span class="ml-1 text-red-500" title="Last UAT deploy failed">✕</span>
+                  )}
                   <span class="ml-1.5 text-slate-400">·</span>
                   <span class="ml-1.5 text-slate-500">{formatAge(repo.uatDeploy.runAt)}</span>
                 </span>
@@ -78,8 +81,11 @@ const syncStyles: Record<RepoStatus['syncState'], { dot: string; label: string; 
             </td>
             <td class="px-3 py-2.5 font-mono text-xs">
               {repo.prodDeploy ? (
-                <span class="text-slate-900">
+                <span class={repo.prodDeploy.conclusion === 'failure' ? 'text-red-700' : 'text-slate-900'}>
                   {repo.prodDeploy.version}
+                  {repo.prodDeploy.conclusion === 'failure' && (
+                    <span class="ml-1 text-red-500" title="Last prod deploy failed">✕</span>
+                  )}
                   <span class="ml-1.5 text-slate-400">·</span>
                   <span class="ml-1.5 text-slate-500">{formatAge(repo.prodDeploy.runAt)}</span>
                 </span>
