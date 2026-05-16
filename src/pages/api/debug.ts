@@ -94,5 +94,20 @@ export const GET: APIRoute = async () => {
     results.getRepoStatusError = String(err);
   }
 
+  // 6. Verify the deployments endpoint still works AFTER the getRepoStatus burst.
+  //    If this fails, it confirms Cloudflare's subrequest limit was exhausted.
+  try {
+    const postBurstRes = await fetch(
+      'https://api.github.com/repos/CinderHillsDev/fluxpulse-platform/deployments?environment=uat&per_page=1',
+      { headers }
+    );
+    results.step6_postBurstStatus = postBurstRes.status;
+    if (!postBurstRes.ok) {
+      results.step6_postBurstError = await postBurstRes.text().catch(() => '(unreadable)');
+    }
+  } catch (err) {
+    results.step6_postBurstError = String(err);
+  }
+
   return Response.json(results, { status: 200 });
 };

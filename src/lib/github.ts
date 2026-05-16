@@ -15,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v5';
+export const STATUS_CACHE_KEY = 'status:v6';
 
 interface GitHubWorkflowRun {
   id: number;
@@ -354,53 +354,60 @@ function determineSyncState(
   return 'uat-ahead';
 }
 
+async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus> {
+  const [latestTag, uatDeploy, prodDeploy, openPrCount, ciPassing] =
+    await Promise.all([
+      fetchLatestTag(token, repo),
+      fetchDeploymentByEnvironment(token, repo, 'uat'),
+      fetchDeploymentByEnvironment(token, repo, 'production'),
+      fetchOpenPRCount(token, repo),
+      checkCIStatus(token, repo),
+    ]);
+
+  const baseRef = uatDeploy?.version ?? latestTag;
+  const unreleasedCommits = await fetchUnreleasedCommits(token, repo, baseRef);
+
+  const syncState = determineSyncState(uatDeploy, prodDeploy);
+
+  const [pendingUatItems, pendingProdItems] = await Promise.all([
+    fetchQueuedItems(token, repo, uatDeploy?.version ?? null, 'main'),
+    uatDeploy && prodDeploy
+      ? fetchQueuedItems(token, repo, prodDeploy.version, uatDeploy.version ?? 'main')
+      : Promise.resolve([] as QueuedItem[]),
+  ]);
+
+  return {
+    name: repo,
+    latestTag,
+    uatDeploy,
+    prodDeploy,
+    syncState,
+    openPrCount,
+    unreleasedCommits,
+    pendingUatItems,
+    pendingProdItems,
+    ciFailing: !ciPassing,
+  };
+}
+
 export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
-  const results = await Promise.allSettled(
-    REPOS.map(async (repo) => {
-      const [latestTag, uatDeploy, prodDeploy, openPrCount, ciPassing] =
-        await Promise.all([
-          fetchLatestTag(token, repo),
-          fetchDeploymentByEnvironment(token, repo, 'uat'),
-          fetchDeploymentByEnvironment(token, repo, 'production'),
-          fetchOpenPRCount(token, repo),
-          checkCIStatus(token, repo),
-        ]);
+  // Process repos in batches of 4 to stay within Cloudflare Workers'
+  // 50-subrequest limit. Each repo needs ~7 concurrent fetches in phase 1,
+  // so 4 × 7 = 28 concurrent subrequests per batch — safely under the cap.
+  const BATCH_SIZE = 4;
+  const allResults: RepoStatus[] = [];
 
-      // Compare commits on main against the SHA last deployed to UAT (or
-      // the latest tag as a fallback if the repo doesn't deploy to UAT).
-      const baseRef = uatDeploy?.version ?? latestTag;
-      const unreleasedCommits = await fetchUnreleasedCommits(token, repo, baseRef);
+  for (let i = 0; i < REPOS.length; i += BATCH_SIZE) {
+    const batch = REPOS.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map((repo) => fetchRepoStatus(token, repo))
+    );
+    for (const r of batchResults) {
+      if (r.status === 'fulfilled') allResults.push(r.value);
+    }
+  }
 
-      const syncState = determineSyncState(uatDeploy, prodDeploy);
-
-      // Queued items for the release queue — commits between the two refs,
-      // enriched with PR info when available. Skipped when the relevant
-      // deploy SHA is missing.
-      const [pendingUatItems, pendingProdItems] = await Promise.all([
-        fetchQueuedItems(token, repo, uatDeploy?.version ?? null, 'main'),
-        uatDeploy && prodDeploy
-          ? fetchQueuedItems(token, repo, prodDeploy.version, uatDeploy.version ?? 'main')
-          : Promise.resolve([] as QueuedItem[]),
-      ]);
-
-      return {
-        name: repo,
-        latestTag,
-        uatDeploy,
-        prodDeploy,
-        syncState,
-        openPrCount,
-        unreleasedCommits,
-        pendingUatItems,
-        pendingProdItems,
-        ciFailing: !ciPassing,
-      };
-    })
-  );
-
-  return results
-    .filter((r) => r.status === 'fulfilled')
-    .map((r) => (r as PromiseFulfilledResult<RepoStatus>).value);
+  return allResults;
 }
 
 export async function getAllPRs(token: string): Promise<PR[]> {
