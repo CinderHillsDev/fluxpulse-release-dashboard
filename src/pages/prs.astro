@@ -8,8 +8,8 @@ import { cachePRs } from '@/lib/github';
 const typedEnv = env as Env;
 const token = typedEnv.GITHUB_TOKEN;
 
-const prs = await cachePRs(typedEnv, token);
-const now = new Date().toLocaleString();
+const { prs, fetchedAt } = await cachePRs(typedEnv, token);
+const now = new Date(fetchedAt).toLocaleString();
 ---
 
 <Layout title="Release Dashboard - Pull Requests">

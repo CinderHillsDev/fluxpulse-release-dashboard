@@ -8,8 +8,8 @@ import { cacheStatus } from '@/lib/github';
 const typedEnv = env as Env;
 const token = typedEnv.GITHUB_TOKEN;
 
-const repos = await cacheStatus(typedEnv, token);
-const now = new Date().toLocaleString();
+const { repos, fetchedAt } = await cacheStatus(typedEnv, token);
+const now = new Date(fetchedAt).toLocaleString();
 
 // Get auth error from query string if present
 const url = new URL(Astro.request.url);

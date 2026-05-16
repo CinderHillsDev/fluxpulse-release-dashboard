@@ -407,23 +407,42 @@ export async function getAllPRs(token: string): Promise<PR[]> {
   return fetchAllOpenPRs(token);
 }
 
+interface CachedStatus {
+  data: RepoStatus[];
+  fetchedAt: string;
+}
+
+interface CachedPRs {
+  data: PR[];
+  fetchedAt: string;
+}
+
 export async function cacheStatus(
   env: Env,
   token: string
-): Promise<RepoStatus[]> {
-  const cached = await env.SESSION.get(STATUS_CACHE_KEY, { type: 'json' });
-  if (cached) return cached as RepoStatus[];
+): Promise<{ repos: RepoStatus[]; fetchedAt: string }> {
+  const cached = await env.SESSION.get<CachedStatus>(STATUS_CACHE_KEY, { type: 'json' });
+  if (cached?.data && cached?.fetchedAt) {
+    return { repos: cached.data, fetchedAt: cached.fetchedAt };
+  }
 
   const fresh = await getRepoStatus(token);
-  await env.SESSION.put(STATUS_CACHE_KEY, JSON.stringify(fresh), { expirationTtl: 300 });
-  return fresh;
+  const fetchedAt = new Date().toISOString();
+  await env.SESSION.put(STATUS_CACHE_KEY, JSON.stringify({ data: fresh, fetchedAt }), { expirationTtl: 60 });
+  return { repos: fresh, fetchedAt };
 }
 
-export async function cachePRs(env: Env, token: string): Promise<PR[]> {
-  const cached = await env.SESSION.get('prs', { type: 'json' });
-  if (cached) return cached as PR[];
+export async function cachePRs(
+  env: Env,
+  token: string
+): Promise<{ prs: PR[]; fetchedAt: string }> {
+  const cached = await env.SESSION.get<CachedPRs>('prs', { type: 'json' });
+  if (cached?.data && cached?.fetchedAt) {
+    return { prs: cached.data, fetchedAt: cached.fetchedAt };
+  }
 
   const fresh = await getAllPRs(token);
-  await env.SESSION.put('prs', JSON.stringify(fresh), { expirationTtl: 120 });
-  return fresh;
+  const fetchedAt = new Date().toISOString();
+  await env.SESSION.put('prs', JSON.stringify({ data: fresh, fetchedAt }), { expirationTtl: 60 });
+  return { prs: fresh, fetchedAt };
 }
