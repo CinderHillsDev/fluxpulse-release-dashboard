@@ -24,6 +24,17 @@ const syncStyles: Record<RepoStatus['syncState'], { dot: string; label: string; 
   'never-deployed': { dot: 'bg-slate-400', label: 'never deployed', tooltip: 'No deployment records for this repo' },
   'unknown': { dot: 'bg-slate-400', label: '—', tooltip: 'No releases yet' },
 };
+
+function ciLabel(repo: RepoStatus): { dot: string; label: string } {
+  if (repo.ciStatus === 'in_progress' || repo.ciStatus === 'queued') {
+    return { dot: 'bg-yellow-400 animate-pulse', label: 'running' };
+  }
+  if (repo.ciConclusion === 'success') return { dot: 'bg-green-500', label: 'passing' };
+  if (repo.ciConclusion === 'failure') return { dot: 'bg-red-500', label: 'failing' };
+  if (repo.ciConclusion === 'cancelled') return { dot: 'bg-slate-400', label: 'cancelled' };
+  if (repo.ciConclusion) return { dot: 'bg-slate-400', label: repo.ciConclusion };
+  return { dot: 'bg-slate-300', label: '—' };
+}
 ---
 
 <div class="overflow-x-auto border border-slate-200 rounded-lg bg-white">
@@ -31,6 +42,7 @@ const syncStyles: Record<RepoStatus['syncState'], { dot: string; label: string; 
     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
       <tr>
         <th class="text-left font-semibold px-4 py-3">Repo</th>
+        <th class="text-left font-semibold px-3 py-3">CI</th>
         <th class="text-left font-semibold px-3 py-3">Sync</th>
         <th class="text-left font-semibold px-3 py-3">Tag</th>
         <th class="text-left font-semibold px-3 py-3">UAT</th>
@@ -43,6 +55,7 @@ const syncStyles: Record<RepoStatus['syncState'], { dot: string; label: string; 
     <tbody class="divide-y divide-slate-100">
       {repos.map((repo) => {
         const sync = syncStyles[repo.syncState];
+        const ci = ciLabel(repo);
         return (
           <tr class="hover:bg-slate-50">
             <td class="px-4 py-2.5 font-medium text-slate-900">
@@ -54,8 +67,18 @@ const syncStyles: Record<RepoStatus['syncState'], { dot: string; label: string; 
               >
                 {repo.name}
               </a>
-              {repo.ciFailing && (
-                <span class="ml-2 text-xs text-red-700" title="CI failing on main">⚠</span>
+            </td>
+            <td class="px-3 py-2.5">
+              {repo.ciRunUrl ? (
+                <a href={repo.ciRunUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 hover:underline" title={`CI: ${repo.ciConclusion ?? repo.ciStatus ?? '—'}`}>
+                  <span class={`inline-block w-2 h-2 rounded-full ${ci.dot}`}></span>
+                  <span class="text-xs text-slate-700">{ci.label}</span>
+                </a>
+              ) : (
+                <span class="inline-flex items-center gap-1.5">
+                  <span class={`inline-block w-2 h-2 rounded-full ${ci.dot}`}></span>
+                  <span class="text-xs text-slate-700">{ci.label}</span>
+                </span>
               )}
             </td>
             <td class="px-3 py-2.5">
@@ -67,28 +90,28 @@ const syncStyles: Record<RepoStatus['syncState'], { dot: string; label: string; 
             <td class="px-3 py-2.5 font-mono text-xs text-slate-700">{repo.latestTag || '—'}</td>
             <td class="px-3 py-2.5 font-mono text-xs">
               {repo.uatDeploy ? (
-                <span class={repo.uatDeploy.conclusion === 'failure' ? 'text-red-700' : 'text-slate-900'}>
+                <a href={repo.uatDeploy.runUrl} target="_blank" rel="noreferrer" class={`hover:underline ${repo.uatDeploy.conclusion === 'failure' ? 'text-red-700' : 'text-slate-900'}`}>
                   {repo.uatDeploy.version}
                   {repo.uatDeploy.conclusion === 'failure' && (
-                    <span class="ml-1 text-red-500" title="Last UAT deploy failed">✕</span>
+                    <span class="ml-1 text-red-500" title="Last UAT deploy failed — click to view run">✕</span>
                   )}
                   <span class="ml-1.5 text-slate-400">·</span>
                   <span class="ml-1.5 text-slate-500">{formatAge(repo.uatDeploy.runAt)}</span>
-                </span>
+                </a>
               ) : (
                 <span class="text-slate-400">—</span>
               )}
             </td>
             <td class="px-3 py-2.5 font-mono text-xs">
               {repo.prodDeploy ? (
-                <span class={repo.prodDeploy.conclusion === 'failure' ? 'text-red-700' : 'text-slate-900'}>
+                <a href={repo.prodDeploy.runUrl} target="_blank" rel="noreferrer" class={`hover:underline ${repo.prodDeploy.conclusion === 'failure' ? 'text-red-700' : 'text-slate-900'}`}>
                   {repo.prodDeploy.version}
                   {repo.prodDeploy.conclusion === 'failure' && (
-                    <span class="ml-1 text-red-500" title="Last prod deploy failed">✕</span>
+                    <span class="ml-1 text-red-500" title="Last prod deploy failed — click to view run">✕</span>
                   )}
                   <span class="ml-1.5 text-slate-400">·</span>
                   <span class="ml-1.5 text-slate-500">{formatAge(repo.prodDeploy.runAt)}</span>
-                </span>
+                </a>
               ) : (
                 <span class="text-slate-400">—</span>
               )}

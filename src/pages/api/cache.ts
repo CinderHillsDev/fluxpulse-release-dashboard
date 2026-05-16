@@ -13,7 +13,8 @@ export const POST: APIRoute = async ({ request }) => {
     // under it pre-bump.
     await Promise.all([
       env.SESSION.delete(STATUS_CACHE_KEY),
-      env.SESSION.delete('status:v6'), // legacy keys
+      env.SESSION.delete('status:v7'), // legacy keys
+      env.SESSION.delete('status:v6'),
       env.SESSION.delete('status:v5'),
       env.SESSION.delete('status:v4'),
       env.SESSION.delete('status'),

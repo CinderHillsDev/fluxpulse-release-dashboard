@@ -15,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v7';
+export const STATUS_CACHE_KEY = 'status:v8';
 
 interface GitHubWorkflowRun {
   id: number;
@@ -136,7 +136,7 @@ async function fetchDeploymentByEnvironment(
     return {
       version,
       runAt,
-      runUrl: `https://github.com/${GH_OWNER}/${repo}/deployments`,
+      runUrl: `https://github.com/${GH_OWNER}/${repo}/actions/workflows/${environment === 'uat' ? 'deploy-uat.yml' : 'deploy-prod.yml'}`,
       conclusion: latestConclusion,
     };
   } catch (err) {
@@ -145,20 +145,27 @@ async function fetchDeploymentByEnvironment(
   }
 }
 
-async function checkCIStatus(token: string, repo: string): Promise<boolean> {
+async function checkCIStatus(
+  token: string,
+  repo: string
+): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
     const res = await fetch(
       `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=1`,
-      {
-        headers: getHeaders(token),
-      }
+      { headers: getHeaders(token) }
     );
-    if (!res.ok) return false;
-    const data = (await res.json()) as { workflow_runs: GitHubWorkflowRun[] };
+    if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
+    const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string })[] };
     const run = data.workflow_runs[0];
-    return run ? run.conclusion === 'success' : false;
+    if (!run) return { passing: false, runUrl: null, conclusion: null, status: null };
+    return {
+      passing: run.conclusion === 'success',
+      runUrl: run.html_url,
+      conclusion: run.conclusion,   // success | failure | cancelled | etc. (null when in_progress)
+      status: run.status,           // queued | in_progress | completed
+    };
   } catch {
-    return false;
+    return { passing: false, runUrl: null, conclusion: null, status: null };
   }
 }
 
@@ -363,7 +370,7 @@ function determineSyncState(
 }
 
 async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus> {
-  const [latestTag, uatDeploy, prodDeploy, openPrCount, ciPassing] =
+  const [latestTag, uatDeploy, prodDeploy, openPrCount, ciResult] =
     await Promise.all([
       fetchLatestTag(token, repo),
       fetchDeploymentByEnvironment(token, repo, 'uat'),
@@ -394,7 +401,10 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
     unreleasedCommits,
     pendingUatItems,
     pendingProdItems,
-    ciFailing: !ciPassing,
+    ciFailing: !ciResult.passing,
+    ciRunUrl: ciResult.runUrl,
+    ciConclusion: ciResult.conclusion,
+    ciStatus: ciResult.status,
   };
 }
 

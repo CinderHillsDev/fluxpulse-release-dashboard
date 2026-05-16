@@ -26,6 +26,9 @@ export interface RepoStatus {
    */
   pendingProdItems: QueuedItem[];
   ciFailing: boolean;
+  ciRunUrl: string | null;
+  ciConclusion: string | null;  // success | failure | cancelled | null (when in_progress)
+  ciStatus: string | null;      // queued | in_progress | completed
 }
 
 /**
