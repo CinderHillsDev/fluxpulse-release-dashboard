@@ -82,9 +82,28 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
+    // Give GitHub ~2s to register the new run, then fetch its ID for a direct link.
+    await new Promise((r) => setTimeout(r, 2000));
+    let runUrl = `https://github.com/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}`;
+    try {
+      const runsRes = await fetch(
+        `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}/runs?per_page=1`,
+        { headers: getHeaders(env.GITHUB_TOKEN) }
+      );
+      if (runsRes.ok) {
+        const data = (await runsRes.json()) as { workflow_runs: { id: number; html_url: string }[] };
+        const latestRun = data.workflow_runs[0];
+        if (latestRun) runUrl = latestRun.html_url;
+      }
+    } catch {
+      // fall through to workflow page link
+    }
+
     return new Response(null, {
       status: 302,
-      headers: { Location: `${redirectBase}?dispatch_ok=${encodeURIComponent(repo)}` },
+      headers: {
+        Location: `${redirectBase}?dispatch_ok=${encodeURIComponent(repo)}&run_url=${encodeURIComponent(runUrl)}`,
+      },
     });
   } catch (error) {
     const redirectBase = request.headers.get('Referer')

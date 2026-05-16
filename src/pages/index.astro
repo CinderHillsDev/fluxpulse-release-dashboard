@@ -4,6 +4,7 @@ import Layout from '@/layouts/Layout.astro';
 import Navbar from '@/components/Navbar.astro';
 import RepoTable from '@/components/RepoTable.astro';
 import { cacheStatus } from '@/lib/github';
+import { GH_OWNER } from '@/repos';
 
 const typedEnv = env as Env;
 const token = typedEnv.GITHUB_TOKEN;
@@ -16,6 +17,7 @@ const authError = url.searchParams.get('auth_error');
 const dispatchError = url.searchParams.get('dispatch_error');
 const dispatchOk = url.searchParams.get('dispatch_ok');
 const dispatchRepo = url.searchParams.get('repo') ?? url.searchParams.get('dispatch_ok') ?? '';
+const runUrl = url.searchParams.get('run_url') ?? '';
 
 const errorMessages: Record<string, string> = {
   github_rate_limited: 'GitHub rate limit exceeded. Please wait a few minutes before trying to log in again.',
@@ -55,7 +57,12 @@ const dispatchErrorMessages: Record<string, string> = {
     {dispatchOk && (
       <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
         <p class="text-green-800">
-          <strong>Dispatched:</strong> deploy-uat workflow triggered for <code class="font-mono">{dispatchOk}</code>. Check GitHub Actions for progress.
+          <strong>Dispatched:</strong> workflow triggered for <code class="font-mono">{dispatchOk}</code>.{' '}
+          {runUrl ? (
+            <a href={runUrl} target="_blank" rel="noreferrer" class="underline font-medium">View run →</a>
+          ) : (
+            <a href={`https://github.com/${GH_OWNER}/${dispatchOk}/actions`} target="_blank" rel="noreferrer" class="underline font-medium">View on GitHub →</a>
+          )}
         </p>
       </div>
     )}
