@@ -154,7 +154,7 @@ async function checkCIStatus(
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
     const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=1`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?per_page=1`,
       { headers: getHeaders(token) }
     );
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
