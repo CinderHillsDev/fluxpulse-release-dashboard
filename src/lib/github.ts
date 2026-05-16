@@ -15,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v9';
+export const STATUS_CACHE_KEY = 'status:v10';
 
 interface GitHubWorkflowRun {
   id: number;
