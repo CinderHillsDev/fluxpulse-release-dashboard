@@ -8,7 +8,7 @@
     "build": "astro build",
     "typecheck": "astro check",
     "preview": "wrangler dev",
-    "deploy": "npm run build && wrangler deploy --env production"
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",
