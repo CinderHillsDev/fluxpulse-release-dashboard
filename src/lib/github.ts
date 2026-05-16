@@ -440,23 +440,12 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
 }
 
 export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
-  // Process repos in batches of 4 to stay within Cloudflare Workers'
-  // 50-subrequest limit. Each repo needs ~7 concurrent fetches in phase 1,
-  // so 4 × 7 = 28 concurrent subrequests per batch — safely under the cap.
-  const BATCH_SIZE = 4;
-  const allResults: RepoStatus[] = [];
-
-  for (let i = 0; i < REPOS.length; i += BATCH_SIZE) {
-    const batch = REPOS.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.allSettled(
-      batch.map((repo) => fetchRepoStatus(token, repo))
-    );
-    for (const r of batchResults) {
-      if (r.status === 'fulfilled') allResults.push(r.value);
-    }
-  }
-
-  return allResults;
+  const results = await Promise.allSettled(
+    REPOS.map((repo) => fetchRepoStatus(token, repo))
+  );
+  return results
+    .filter((r) => r.status === 'fulfilled')
+    .map((r) => (r as PromiseFulfilledResult<RepoStatus>).value);
 }
 
 export async function getAllPRs(token: string): Promise<PR[]> {
