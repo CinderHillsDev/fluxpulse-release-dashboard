@@ -11,13 +11,21 @@
 
 ## Option 1: Docker (Recommended — Always Running)
 
-Run the dashboard in a container on your machine:
+**One-time setup:**
 
 ```bash
 cd /Users/chris/coding/fluxpulse/fluxpulse-release-dashboard
 
-# Start the container
-GH_PAT=ghp_xxxxxxxxxxxxxxxxxxxx docker-compose up -d
+# Copy the template and add your PAT
+cp .env.example .env
+# Edit .env and replace ghp_xxxx with your actual token
+```
+
+**Then start it:**
+
+```bash
+# Start the container (reads .env automatically)
+docker-compose up -d
 
 # View logs
 docker-compose logs -f
@@ -26,7 +34,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-The dashboard will be available at `http://localhost:3000` and restart automatically if your machine reboots.
+The dashboard will be available at `http://localhost:3000` and restart automatically if your machine reboots. Your `.env` file is git-ignored, so your token won't be committed.
 
 ---
 
