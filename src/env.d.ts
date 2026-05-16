@@ -16,7 +16,7 @@ declare namespace App {
 
 interface Env {
   SESSION: KVNamespace;
-  GITHUB_TOKEN: string;
+  CF_GH_PAT_FluxPulseReleaseDashboard: string;
   GITHUB_CLIENT_ID: string;
   GITHUB_CLIENT_SECRET: string;
 }

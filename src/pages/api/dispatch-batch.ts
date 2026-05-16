@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request }) => {
   const workflowFile = workflow === 'deploy-prod' ? 'deploy-prod.yml' : 'deploy-uat.yml';
 
   const headers = {
-    Authorization: `Bearer ${(env as any).GITHUB_TOKEN}`,
+    Authorization: `Bearer ${(env as any).CF_GH_PAT_FluxPulseReleaseDashboard}`,
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'fluxpulse-release-dashboard',

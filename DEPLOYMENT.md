@@ -46,7 +46,7 @@ routes = [
 ```bash
 wrangler secret put GITHUB_CLIENT_ID --env production
 wrangler secret put GITHUB_CLIENT_SECRET --env production
-wrangler secret put GITHUB_TOKEN --env production
+wrangler secret put CF_GH_PAT_FluxPulseReleaseDashboard --env production
 ```
 
 When prompted, enter values from your GitHub OAuth App and Personal Access Token.

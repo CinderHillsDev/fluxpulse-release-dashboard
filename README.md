@@ -44,7 +44,7 @@ Or use GitHub Actions (see `.github/workflows/deploy.yml`).
 Set these via `wrangler secret put`:
 
 ```bash
-wrangler secret put GITHUB_TOKEN          # Fine-grained PAT
+wrangler secret put CF_GH_PAT_FluxPulseReleaseDashboard  # Fine-grained PAT: repo:read, actions:read
 wrangler secret put DASHBOARD_TOKEN       # Any random string (e.g., openssl rand -base64 32)
 ```
 

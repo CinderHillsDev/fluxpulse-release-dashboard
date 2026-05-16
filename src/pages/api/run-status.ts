@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ url }) => {
 
     const res = await fetch(apiUrl, {
       headers: {
-        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        Authorization: `Bearer ${env.CF_GH_PAT_FluxPulseReleaseDashboard}`,
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28',
         'User-Agent': 'fluxpulse-release-dashboard',

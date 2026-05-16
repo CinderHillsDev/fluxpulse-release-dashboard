@@ -27,4 +27,4 @@ binding = "SESSION"
 id = "f32b89ce203a432b831e4000ffece4c2"
 
 # Secrets — set via: wrangler secret put <NAME> --env production
-#   GITHUB_TOKEN, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+#   CF_GH_PAT_FluxPulseReleaseDashboard, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET

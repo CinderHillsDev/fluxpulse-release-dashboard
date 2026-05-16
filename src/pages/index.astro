@@ -7,7 +7,7 @@ import { cacheStatus } from '@/lib/github';
 import { GH_OWNER } from '@/repos';
 
 const typedEnv = env as Env;
-const token = typedEnv.GITHUB_TOKEN;
+const token = typedEnv.CF_GH_PAT_FluxPulseReleaseDashboard;
 
 const { repos, fetchedAt } = await cacheStatus(typedEnv, token);
 const now = new Date(fetchedAt).toLocaleString();

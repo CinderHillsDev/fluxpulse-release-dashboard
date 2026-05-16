@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
       `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}/dispatches`,
       {
         method: 'POST',
-        headers: getHeaders(env.GITHUB_TOKEN),
+        headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard),
         body: JSON.stringify({
           ref: 'main',
           inputs,
@@ -88,7 +88,7 @@ export const POST: APIRoute = async ({ request }) => {
     try {
       const runsRes = await fetch(
         `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}/runs?per_page=1`,
-        { headers: getHeaders(env.GITHUB_TOKEN) }
+        { headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard) }
       );
       if (runsRes.ok) {
         const data = (await runsRes.json()) as { workflow_runs: { id: number; html_url: string }[] };

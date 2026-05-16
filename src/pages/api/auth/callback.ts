@@ -75,7 +75,7 @@ export const GET: APIRoute = async ({ request, cookies }) => {
     const memberRes = await fetch(
       `https://api.github.com/orgs/${ORG}/members/${user.login}`,
       {
-        headers: getHeaders(env.GITHUB_TOKEN),
+        headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard),
       }
     );
 
