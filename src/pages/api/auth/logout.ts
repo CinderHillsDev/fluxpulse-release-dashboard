@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { env as cfEnv } from 'cloudflare:workers';
+import { env as cfEnv } from '@/lib/env';
 
 const env = cfEnv as any as Env;
 

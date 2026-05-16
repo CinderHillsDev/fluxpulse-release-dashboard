@@ -1,12 +1,11 @@
 ---
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/env';
 import Layout from '@/layouts/Layout.astro';
 import Navbar from '@/components/Navbar.astro';
 import RepoTable from '@/components/RepoTable.astro';
 import { getRepoStatus } from '@/lib/github';
 
-const typedEnv = env as Env;
-const token = typedEnv.CF_GH_PAT_FluxPulseReleaseDashboard;
+const token = env.CF_GH_PAT_FluxPulseReleaseDashboard;
 
 const repos = await getRepoStatus(token);
 const now = new Date().toLocaleString();

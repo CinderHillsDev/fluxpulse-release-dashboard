@@ -1,5 +1,5 @@
 ---
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/env';
 import Layout from '@/layouts/Layout.astro';
 import Navbar from '@/components/Navbar.astro';
 import ActivityFeed from '@/components/ActivityFeed.astro';
@@ -7,7 +7,7 @@ import { fetchActivity } from '@/lib/github';
 
 export const prerender = false;
 
-const typedEnv = env as Env;
+const typedEnv = env;
 const token = typedEnv.GITHUB_TOKEN;
 const events = await fetchActivity(token);
 ---

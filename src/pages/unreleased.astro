@@ -1,12 +1,12 @@
 ---
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/env';
 import Layout from '@/layouts/Layout.astro';
 import Navbar from '@/components/Navbar.astro';
 import ReleaseQueue from '@/components/ReleaseQueue.astro';
 import { cacheStatus } from '@/lib/github';
 import { GH_OWNER } from '@/repos';
 
-const typedEnv = env as Env;
+const typedEnv = env;
 const token = typedEnv.GITHUB_TOKEN;
 
 const { repos, fetchedAt } = await cacheStatus(typedEnv, token);

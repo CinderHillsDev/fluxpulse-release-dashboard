@@ -1,12 +1,11 @@
-import { env } from 'cloudflare:workers';
+import { env } from '@/lib/env';
 import { fetchRepoStatus } from '@/lib/github';
 import { REPOS } from '@/repos';
 
 export const prerender = false;
 
 export async function GET(context: any) {
-  const typedEnv = env as Env;
-  const token = typedEnv.CF_GH_PAT_FluxPulseReleaseDashboard;
+  const token = env.CF_GH_PAT_FluxPulseReleaseDashboard;
 
   const repoParam = context.url.searchParams.get('repo');
   if (!repoParam) {

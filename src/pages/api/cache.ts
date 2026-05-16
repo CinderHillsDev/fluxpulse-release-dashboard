@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
-import { env as cfEnv } from 'cloudflare:workers';
+import { env as cfEnv } from '@/lib/env';
 import { STATUS_CACHE_KEY } from '@/lib/github';
 
-const env = cfEnv as any as Env;
+const env = cfEnv as any;
 
 export const prerender = false;
 
