@@ -15,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v4';
+export const STATUS_CACHE_KEY = 'status:v5';
 
 interface GitHubWorkflowRun {
   id: number;
@@ -361,7 +361,7 @@ export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
         await Promise.all([
           fetchLatestTag(token, repo),
           fetchDeploymentByEnvironment(token, repo, 'uat'),
-          fetchDeploymentByEnvironment(token, repo, 'prod'),
+          fetchDeploymentByEnvironment(token, repo, 'production'),
           fetchOpenPRCount(token, repo),
           checkCIStatus(token, repo),
         ]);
