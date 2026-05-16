@@ -440,14 +440,22 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
 }
 
 export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
-  // Fetch all repos concurrently - Cloudflare will rate-limit if needed but won't block
-  const results = await Promise.allSettled(
-    REPOS.map((repo) => fetchRepoStatus(token, repo))
-  );
+  const BATCH_SIZE = 3;
+  const allResults: RepoStatus[] = [];
 
-  return results
-    .filter((r) => r.status === 'fulfilled')
-    .map((r) => (r as PromiseFulfilledResult<RepoStatus>).value);
+  for (let i = 0; i < REPOS.length; i += BATCH_SIZE) {
+    const batch = REPOS.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map((repo) => fetchRepoStatus(token, repo))
+    );
+    for (const r of batchResults) {
+      if (r.status === 'fulfilled') {
+        allResults.push(r.value);
+      }
+    }
+  }
+
+  return allResults;
 }
 
 export async function getAllPRs(token: string): Promise<PR[]> {
