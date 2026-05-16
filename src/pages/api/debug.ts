@@ -54,8 +54,35 @@ export const GET: APIRoute = async () => {
     results.deploymentsError = await deployRes.text().catch(() => '(unreadable)');
   }
 
-  // 4. Run actual getRepoStatus for just fluxpulse-platform to see what the
-  //    dashboard pipeline produces end-to-end.
+  // 4. Trace fetchDeploymentByEnvironment step by step for fluxpulse-platform/uat
+  if (deployRes?.ok) {
+    try {
+      const deps = await fetch(
+        'https://api.github.com/repos/CinderHillsDev/fluxpulse-platform/deployments?environment=uat&per_page=1',
+        { headers }
+      );
+      const depsJson = await deps.json() as any[];
+      const dep = depsJson[0];
+      results.step4_deploymentId = dep?.id ?? null;
+      results.step4_statusesUrl = dep?.statuses_url ?? null;
+
+      if (dep?.statuses_url) {
+        const statusRes = await fetch(`${dep.statuses_url}?per_page=1`, { headers });
+        results.step4_statusesHttpStatus = statusRes.status;
+        if (statusRes.ok) {
+          const statuses = await statusRes.json() as any[];
+          results.step4_statusesCount = statuses.length;
+          results.step4_latestState = statuses[0]?.state ?? null;
+        } else {
+          results.step4_statusesError = await statusRes.text().catch(() => '(unreadable)');
+        }
+      }
+    } catch (err) {
+      results.step4_error = String(err);
+    }
+  }
+
+  // 5. Run actual getRepoStatus to see end-to-end pipeline result.
   try {
     const statuses = await getRepoStatus(token);
     const platform = statuses.find(r => r.name === 'fluxpulse-platform');
