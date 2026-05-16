@@ -440,20 +440,26 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
 }
 
 export async function getRepoStatus(token: string): Promise<RepoStatus[]> {
-  const BATCH_SIZE = 4;
+  const BATCH_SIZE = 2;
   const allResults: RepoStatus[] = [];
 
   for (let i = 0; i < REPOS.length; i += BATCH_SIZE) {
     const batch = REPOS.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.allSettled(
-      batch.map((repo) => fetchRepoStatus(token, repo))
-    );
-    for (const r of batchResults) {
-      if (r.status === 'fulfilled') {
-        allResults.push(r.value);
-      } else {
-        console.error('Batch error:', r.reason);
+    try {
+      const batchResults = await Promise.allSettled(
+        batch.map((repo) => fetchRepoStatus(token, repo))
+      );
+      for (const r of batchResults) {
+        if (r.status === 'fulfilled') {
+          allResults.push(r.value);
+        }
       }
+    } catch (e) {
+      console.error(`Batch at index ${i} failed:`, e);
+    }
+    // Small delay between batches to avoid overwhelming Cloudflare
+    if (i + BATCH_SIZE < REPOS.length) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
   }
 
