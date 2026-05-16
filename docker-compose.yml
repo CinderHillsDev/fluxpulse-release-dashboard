@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  dashboard:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      CF_GH_PAT_FluxPulseReleaseDashboard: ${GH_PAT}
+    restart: unless-stopped
+    container_name: fluxpulse-release-dashboard
