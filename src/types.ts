@@ -7,6 +7,8 @@ export interface DeployInfo {
 
 export interface RepoStatus {
   name: string;
+  /** True for agent/binary repos that ship via release.yml with no UAT stage. */
+  releaseOnly: boolean;
   latestTag: string | null;
   uatDeploy: DeployInfo | null;
   prodDeploy: DeployInfo | null;

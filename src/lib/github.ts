@@ -1,4 +1,4 @@
-import { REPOS, GH_OWNER, HEALTH_ENDPOINTS } from '@/repos';
+import { REPOS, GH_OWNER, HEALTH_ENDPOINTS, RELEASE_ONLY_REPOS } from '@/repos';
 import type {
   RepoStatus,
   DeployInfo,
@@ -15,7 +15,7 @@ const GH_API_VERSION = '2022-11-28';
  * automatically ignored. Exported so /api/cache (the Refresh button) and
  * cacheStatus stay in lockstep.
  */
-export const STATUS_CACHE_KEY = 'status:v10';
+export const STATUS_CACHE_KEY = 'status:v11';
 
 interface GitHubWorkflowRun {
   id: number;
@@ -133,10 +133,13 @@ async function fetchDeploymentByEnvironment(
     const version = baseDeploy.sha.substring(0, 7);
     const runAt = latestStatus?.updated_at ?? latestDeploy.updated_at;
 
+    const workflowFile = RELEASE_ONLY_REPOS.has(repo as any)
+      ? 'release.yml'
+      : environment === 'uat' ? 'deploy-uat.yml' : 'deploy-prod.yml';
     return {
       version,
       runAt,
-      runUrl: `https://github.com/${GH_OWNER}/${repo}/actions/workflows/${environment === 'uat' ? 'deploy-uat.yml' : 'deploy-prod.yml'}`,
+      runUrl: `https://github.com/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}`,
       conclusion: latestConclusion,
     };
   } catch (err) {
@@ -380,10 +383,13 @@ async function fetchHealthStatus(url: string): Promise<'up' | 'down' | 'unknown'
 
 async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus> {
   const endpoints = HEALTH_ENDPOINTS[repo as keyof typeof HEALTH_ENDPOINTS];
+  const isReleaseOnly = RELEASE_ONLY_REPOS.has(repo as any);
+
   const [latestTag, uatDeploy, prodDeploy, openPrCount, ciResult, uatHealth, prodHealth] =
     await Promise.all([
       fetchLatestTag(token, repo),
-      fetchDeploymentByEnvironment(token, repo, 'uat'),
+      // Release-only repos have no UAT stage — skip the API call entirely.
+      isReleaseOnly ? Promise.resolve(null) : fetchDeploymentByEnvironment(token, repo, 'uat'),
       fetchDeploymentByEnvironment(token, repo, 'production'),
       fetchOpenPRCount(token, repo),
       checkCIStatus(token, repo),
@@ -394,10 +400,20 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
   const baseRef = uatDeploy?.version ?? latestTag;
   const unreleasedCommits = await fetchUnreleasedCommits(token, repo, baseRef);
 
-  const syncState = determineSyncState(uatDeploy, prodDeploy);
+  // Release-only repos are "in sync" once a prod release exists; there is
+  // never a UAT stage to be ahead of.
+  const syncState = isReleaseOnly
+    ? (prodDeploy ? 'in-sync' : 'never-deployed')
+    : determineSyncState(uatDeploy, prodDeploy);
+
+  // For release-only repos use latestTag (or prodDeploy SHA) as the base for
+  // the pending queue, since there is no UAT deploy version to compare against.
+  const queueBaseRef = isReleaseOnly
+    ? (latestTag ?? prodDeploy?.version ?? null)
+    : (uatDeploy?.version ?? null);
 
   const [pendingUatItems, pendingProdItems] = await Promise.all([
-    fetchQueuedItems(token, repo, uatDeploy?.version ?? null, 'main'),
+    fetchQueuedItems(token, repo, queueBaseRef, 'main'),
     uatDeploy && prodDeploy
       ? fetchQueuedItems(token, repo, prodDeploy.version, uatDeploy.version ?? 'main')
       : Promise.resolve([] as QueuedItem[]),
@@ -405,6 +421,7 @@ async function fetchRepoStatus(token: string, repo: string): Promise<RepoStatus>
 
   return {
     name: repo,
+    releaseOnly: isReleaseOnly,
     latestTag,
     uatDeploy,
     prodDeploy,
@@ -501,8 +518,10 @@ export async function fetchActivity(token: string): Promise<ActivityEvent[]> {
   const headers = getHeaders(token);
   const events: ActivityEvent[] = [];
 
-  // Fetch last 5 runs of each workflow type for each repo — batched 4 repos at a time
-  const WORKFLOWS = ['ci.yml', 'deploy-uat.yml', 'deploy-prod.yml'];
+  // Fetch last 5 runs of each workflow type for each repo — batched 4 repos at a time.
+  // release.yml is included for agent repos; GitHub returns 404 for non-existent
+  // workflows which the inner try/catch already handles gracefully.
+  const WORKFLOWS = ['ci.yml', 'deploy-uat.yml', 'deploy-prod.yml', 'release.yml'];
   const BATCH = 4;
 
   for (let i = 0; i < REPOS.length; i += BATCH) {

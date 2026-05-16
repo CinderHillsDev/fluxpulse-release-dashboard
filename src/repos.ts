@@ -18,6 +18,17 @@ export const REPOS = [
 
 export type RepoName = (typeof REPOS)[number];
 
+/**
+ * Repos that ship packaged releases (release.yml → GitHub Release) rather
+ * than continuously deployed services (deploy-uat.yml / deploy-prod.yml).
+ * These have no UAT stage; "prod" is the latest GitHub Release.
+ */
+export const RELEASE_ONLY_REPOS = new Set<RepoName>([
+  'fluxpulse-agent-linux',
+  'fluxpulse-agent-macos',
+  'fluxpulse-agent-windows',
+]);
+
 export const HEALTH_ENDPOINTS: Partial<Record<RepoName, { uat?: string; prod?: string }>> = {
   'fluxpulse-platform':      { uat: 'https://api-fp-uat.azurewebsites.net/health/ready',   prod: 'https://api-fp-prod.azurewebsites.net/health/ready' },
   'fluxpulse-portal':        { uat: 'https://portal.fluxpulse.dev',                         prod: 'https://portal.fluxpulse.app' },
