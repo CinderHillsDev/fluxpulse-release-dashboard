@@ -1,7 +1,6 @@
 name = "fluxpulse-release-dashboard"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "dist/server"
 
 # `main` intentionally OMITTED — adapter emits it into dist/server/wrangler.json.
 # Keeping it here causes a chicken-and-egg failure on clean builds.
