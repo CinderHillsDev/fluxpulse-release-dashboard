@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env as cfEnv } from 'cloudflare:workers';
+import { getRepoStatus } from '@/lib/github';
 
 const env = cfEnv as any as Env;
 
@@ -51,6 +52,19 @@ export const GET: APIRoute = async () => {
     results.latestDeploymentSha = deps[0]?.sha?.slice(0, 7) ?? null;
   } else if (deployRes) {
     results.deploymentsError = await deployRes.text().catch(() => '(unreadable)');
+  }
+
+  // 4. Run actual getRepoStatus for just fluxpulse-platform to see what the
+  //    dashboard pipeline produces end-to-end.
+  try {
+    const statuses = await getRepoStatus(token);
+    const platform = statuses.find(r => r.name === 'fluxpulse-platform');
+    results.platformRepoStatus = platform
+      ? { syncState: platform.syncState, uatDeploy: platform.uatDeploy, prodDeploy: platform.prodDeploy }
+      : '(not found in results)';
+    results.totalReposReturned = statuses.length;
+  } catch (err) {
+    results.getRepoStatusError = String(err);
   }
 
   return Response.json(results, { status: 200 });
