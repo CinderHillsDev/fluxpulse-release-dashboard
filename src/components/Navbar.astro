@@ -1,6 +1,6 @@
 ---
 interface Props {
-  currentPage: 'overview' | 'prs' | 'unreleased';
+  currentPage: 'overview' | 'prs' | 'unreleased' | 'activity';
   lastUpdated?: string;
 }
 
@@ -37,6 +37,12 @@ const isActive = (page: string) =>
             class={`pb-2 font-medium transition ${isActive('unreleased')}`}
           >
             Unreleased
+          </a>
+          <a
+            href="/activity"
+            class={`pb-2 font-medium transition ${isActive('activity')}`}
+          >
+            Activity
           </a>
         </div>
 
