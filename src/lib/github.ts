@@ -471,3 +471,57 @@ export async function cachePRs(
   await env.SESSION.put('prs', JSON.stringify({ data: fresh, fetchedAt }), { expirationTtl: 60 });
   return { prs: fresh, fetchedAt };
 }
+
+export interface ActivityEvent {
+  repo: string;
+  workflow: string;       // 'ci' | 'deploy-uat' | 'deploy-prod'
+  status: string;         // queued | in_progress | completed
+  conclusion: string | null; // success | failure | cancelled | null
+  runAt: string;          // created_at ISO string
+  updatedAt: string;      // updated_at ISO string
+  runUrl: string;         // html_url
+  actor: string | null;   // triggering actor login
+}
+
+export async function fetchActivity(token: string): Promise<ActivityEvent[]> {
+  const headers = getHeaders(token);
+  const events: ActivityEvent[] = [];
+
+  // Fetch last 5 runs of each workflow type for each repo — batched 4 repos at a time
+  const WORKFLOWS = ['ci.yml', 'deploy-uat.yml', 'deploy-prod.yml'];
+  const BATCH = 4;
+
+  for (let i = 0; i < REPOS.length; i += BATCH) {
+    const batch = REPOS.slice(i, i + BATCH);
+    await Promise.all(
+      batch.flatMap((repo) =>
+        WORKFLOWS.map(async (wf) => {
+          try {
+            const res = await fetch(
+              `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${wf}/runs?per_page=5`,
+              { headers }
+            );
+            if (!res.ok) return;
+            const data = await res.json() as { workflow_runs: any[] };
+            for (const run of data.workflow_runs ?? []) {
+              events.push({
+                repo,
+                workflow: wf.replace('.yml', ''),
+                status: run.status,
+                conclusion: run.conclusion,
+                runAt: run.created_at,
+                updatedAt: run.updated_at,
+                runUrl: run.html_url,
+                actor: run.triggering_actor?.login ?? null,
+              });
+            }
+          } catch { /* skip */ }
+        })
+      )
+    );
+  }
+
+  return events
+    .sort((a, b) => new Date(b.runAt).getTime() - new Date(a.runAt).getTime())
+    .slice(0, 50);
+}
