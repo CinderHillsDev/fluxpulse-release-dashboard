@@ -1,13 +1,11 @@
 name = "fluxpulse-release-dashboard"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist/server"
 
 # `main` intentionally OMITTED — adapter emits it into dist/server/wrangler.json.
 # Keeping it here causes a chicken-and-egg failure on clean builds.
-
-[assets]
-directory = "./dist/client"
-binding = "ASSETS"
+# Note: ASSETS binding is automatic in Pages, no need to define it.
 
 # TOP-LEVEL binding — hasSessionBinding check in adapter reads this level only.
 # With a real id here, adapter does NOT inject a no-id SESSION binding.
@@ -16,15 +14,5 @@ binding = "SESSION"
 id = "f32b89ce203a432b831e4000ffece4c2"
 preview_id = "f32b89ce203a432b831e4000ffece4c2"
 
-[env.production]
-account_id = "3e9a9a6915748025fc2f087f981f7476"
-routes = [
-  { pattern = "release-dashboard.fluxpulse.app/*", zone_name = "fluxpulse.app" }
-]
-
-[[env.production.kv_namespaces]]
-binding = "SESSION"
-id = "f32b89ce203a432b831e4000ffece4c2"
-
-# Secrets — set via: wrangler secret put <NAME> --env production
+# Secrets — set via: wrangler secret put <NAME>
 #   CF_GH_PAT_FluxPulseReleaseDashboard, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
