@@ -36,7 +36,7 @@ const dispatchErrorMessages: Record<string, string> = {
       </div>
     )}
     {dispatchOk && (
-      <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+      <div id="dispatch-banner" data-run-url={runUrl} data-repo={dispatchOk} class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
         <p class="text-green-800">
           <strong>Dispatched:</strong> workflow triggered for <code class="font-mono">{dispatchOk}</code>.{' '}
           {runUrl ? (
@@ -46,6 +46,66 @@ const dispatchErrorMessages: Record<string, string> = {
           )}
         </p>
       </div>
+    )}
+    {dispatchOk && runUrl && (
+      <script>
+        (function () {
+          const banner = document.getElementById('dispatch-banner');
+          if (!banner) return;
+          const runUrl = banner.dataset.runUrl;
+          const repo = banner.dataset.repo;
+          if (!runUrl) return;
+
+          const MAX_POLLS = 20;
+          let polls = 0;
+
+          function applyState(status, conclusion, htmlUrl) {
+            const link = `<a href="${htmlUrl}" target="_blank" rel="noreferrer" class="underline font-medium">View run →</a>`;
+            if (status === 'completed') {
+              if (conclusion === 'success') {
+                banner.className = 'mb-6 p-4 bg-green-50 border border-green-200 rounded-lg';
+                banner.innerHTML = `<p class="text-green-800"><strong>✓ Deployed:</strong> <code class="font-mono">${repo}</code> deployed successfully. ${link}</p>`;
+              } else if (conclusion === 'failure') {
+                banner.className = 'mb-6 p-4 bg-red-50 border border-red-200 rounded-lg';
+                banner.innerHTML = `<p class="text-red-800"><strong>✕ Deploy failed</strong> for <code class="font-mono">${repo}</code>. ${link}</p>`;
+              } else if (conclusion === 'cancelled') {
+                banner.className = 'mb-6 p-4 bg-slate-100 border border-slate-300 rounded-lg';
+                banner.innerHTML = `<p class="text-slate-700"><strong>— Deploy cancelled</strong> for <code class="font-mono">${repo}</code>. ${link}</p>`;
+              } else {
+                banner.className = 'mb-6 p-4 bg-slate-100 border border-slate-300 rounded-lg';
+                banner.innerHTML = `<p class="text-slate-700"><strong>Deploy finished</strong> (<code class="font-mono">${conclusion}</code>) for <code class="font-mono">${repo}</code>. ${link}</p>`;
+              }
+            } else {
+              // queued or in_progress
+              banner.className = 'mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg';
+              banner.innerHTML = `<p class="text-amber-800"><strong>⏳ Running:</strong> deploy for <code class="font-mono">${repo}</code>… ${link}</p>`;
+            }
+          }
+
+          async function poll() {
+            polls++;
+            try {
+              const res = await fetch(`/api/run-status?run_url=${encodeURIComponent(runUrl)}`);
+              if (!res.ok) return;
+              const data = await res.json();
+              applyState(data.status, data.conclusion, data.html_url || runUrl);
+              if (data.status === 'completed') return; // stop
+            } catch (_) {
+              // network error — keep trying
+            }
+            if (polls < MAX_POLLS) {
+              setTimeout(poll, 5000);
+            } else {
+              // Give up — show fallback with link
+              banner.className = 'mb-6 p-4 bg-slate-100 border border-slate-300 rounded-lg';
+              banner.innerHTML = `<p class="text-slate-700">Deploy for <code class="font-mono">${repo}</code> is taking longer than expected. <a href="${runUrl}" target="_blank" rel="noreferrer" class="underline font-medium">View run →</a></p>`;
+            }
+          }
+
+          // Start first poll after a short delay to let GitHub register the run
+          setTimeout(poll, 3000);
+        })();
+      </script>
     )}
 
     <div class="mb-6">
