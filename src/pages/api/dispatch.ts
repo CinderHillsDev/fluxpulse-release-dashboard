@@ -61,7 +61,12 @@ export const POST: APIRoute = async ({ request }) => {
     // No release.yml — semver bumping isn't part of the model.
     const isRelease = workflow !== 'deploy-prod';
     const workflowFile = isRelease ? 'deploy-uat.yml' : 'deploy-prod.yml';
-    const inputs: Record<string, string> = {};
+
+    // Infrastructure workflows require mode input to trigger apply jobs
+    const isInfra = repo === 'fluxpulse-infrastructure';
+    const inputs: Record<string, string> = isInfra
+      ? { mode: 'apply' }
+      : {};
 
     // Trigger workflow_dispatch
     const dispatchRes = await fetch(
