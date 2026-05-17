@@ -10,9 +10,10 @@ COPY certs/ ./certs/
 
 RUN npm run build
 
-EXPOSE 3000
+EXPOSE 4000
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV HOST=0.0.0.0
+ENV PORT=4000
 
-CMD ["node", "./server.mjs"]
+CMD ["node", "./dist/server/entry.mjs"]
