@@ -154,16 +154,17 @@ export async function checkCIStatus(
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
     const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=10`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?per_page=20`,
       { headers: getHeaders(token) }
     );
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
-    const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string; created_at: string })[] };
+    const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string; created_at: string; head_branch: string })[] };
 
-    // Find the most recent run by created_at timestamp
+    // Find the most recent run on main branch by created_at timestamp
     let mostRecentRun = null;
     let mostRecentTime = new Date(0);
     for (const run of data.workflow_runs) {
+      if (run.head_branch !== 'main') continue;
       const runTime = new Date(run.created_at);
       if (runTime > mostRecentTime) {
         mostRecentTime = runTime;
