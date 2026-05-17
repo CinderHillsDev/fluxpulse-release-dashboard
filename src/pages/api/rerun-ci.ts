@@ -69,7 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
         : dispatchRes.status === 404 ? 'workflow_not_found'
         : dispatchRes.status === 422 ? 'dispatch_unprocessable'
         : 'dispatch_failed';
-      console.error(`Dispatch failed ${dispatchRes.status} for ${repo}/${workflowPath}:`, detail);
+      console.error(`Dispatch failed ${dispatchRes.status} for ${repo}/${workflowFile}:`, detail);
       return new Response(JSON.stringify({ ok: false, error: code, repo }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
