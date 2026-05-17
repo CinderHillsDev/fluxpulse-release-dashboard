@@ -13,13 +13,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.csrfToken = DEV_CSRF_TOKEN;
 
   // Show loading page on first visit to home page
-  if (context.url.pathname === '/' && !context.cookies.has('visited')) {
-    context.cookies.set('visited', 'true', {
-      httpOnly: false,
-      sameSite: 'lax',
-      path: '/',
-    });
-    return context.redirect('/loading');
+  if (context.url.pathname === '/') {
+    const hasVisited = context.cookies.has('visited');
+    if (!hasVisited) {
+      context.cookies.set('visited', 'true', {
+        httpOnly: false,
+        sameSite: 'lax',
+        path: '/',
+      });
+      console.log('[middleware] Redirecting to /loading');
+      return context.redirect('/loading');
+    }
   }
 
   return next();
