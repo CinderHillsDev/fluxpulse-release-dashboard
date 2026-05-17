@@ -396,9 +396,14 @@ export async function fetchRepoStatus(token: string, repo: string): Promise<Repo
 
   // Release-only repos are "in sync" once a prod release exists; there is
   // never a UAT stage to be ahead of.
-  const syncState = isReleaseOnly
+  let syncState = isReleaseOnly
     ? (prodDeploy ? 'in-sync' : 'never-deployed')
     : determineSyncState(uatDeploy, prodDeploy);
+
+  // Suppress "uat-ahead" status for specs repo
+  if (repo === 'fluxpulse-specs' && syncState === 'uat-ahead') {
+    syncState = 'in-sync';
+  }
 
   // For release-only repos use latestTag (or prodDeploy SHA) as the base for
   // the pending queue, since there is no UAT deploy version to compare against.
