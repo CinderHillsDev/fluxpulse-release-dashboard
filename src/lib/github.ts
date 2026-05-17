@@ -154,18 +154,29 @@ export async function checkCIStatus(
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
     const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=1&sort=created&direction=desc`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=10`,
       { headers: getHeaders(token) }
     );
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
-    const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string })[] };
-    const run = data.workflow_runs[0];
-    if (!run) return { passing: false, runUrl: null, conclusion: null, status: null };
+    const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string; created_at: string })[] };
+
+    // Find the most recent run by created_at timestamp
+    let mostRecentRun = null;
+    let mostRecentTime = new Date(0);
+    for (const run of data.workflow_runs) {
+      const runTime = new Date(run.created_at);
+      if (runTime > mostRecentTime) {
+        mostRecentTime = runTime;
+        mostRecentRun = run;
+      }
+    }
+
+    if (!mostRecentRun) return { passing: false, runUrl: null, conclusion: null, status: null };
     return {
-      passing: run.conclusion === 'success',
-      runUrl: run.html_url,
-      conclusion: run.conclusion,
-      status: run.status,
+      passing: mostRecentRun.conclusion === 'success',
+      runUrl: mostRecentRun.html_url,
+      conclusion: mostRecentRun.conclusion,
+      status: mostRecentRun.status,
     };
   } catch {
     return { passing: false, runUrl: null, conclusion: null, status: null };
