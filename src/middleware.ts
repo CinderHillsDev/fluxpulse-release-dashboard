@@ -13,8 +13,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   context.locals.csrfToken = DEV_CSRF_TOKEN;
 
   // Show loading page briefly on home page visits
-  // Skip loading page if it has the _skip_loading query param (set after showing loading)
-  const skipLoading = context.url.searchParams.has('_skip_loading');
+  // Skip loading page if coming from /loading or has _skip_loading param
+  const referer = context.request.headers.get('referer') || '';
+  const skipLoading = context.url.searchParams.has('_skip_loading') || referer.includes('/loading');
   if (context.url.pathname === '/' && !skipLoading) {
     return context.redirect('/loading');
   }
