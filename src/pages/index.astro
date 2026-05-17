@@ -164,6 +164,66 @@ const batchError = url.searchParams.get('batch_error');
         return false;
       };
 
+      window.submitRerunCi = async function(event) {
+        event.preventDefault();
+        const form = event.target;
+        const repo = form.elements.repo?.value;
+        const btn = form.querySelector('button[type="submit"]');
+
+        if (btn) btn.disabled = true;
+
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form)
+          });
+          const data = await res.json();
+
+          const main = document.querySelector('main');
+          if (!main) return false;
+
+          if (data.ok) {
+            const banner = document.createElement('div');
+            banner.id = 'dispatch-banner';
+            banner.dataset.runUrl = data.runUrl;
+            banner.dataset.repo = repo;
+            banner.className = 'mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg';
+            banner.innerHTML = `<p class="text-amber-800"><strong>CI retried:</strong> re-running workflow for <code class="font-mono">${repo}</code>. <a href="${data.runUrl}" target="_blank" rel="noreferrer" class="underline font-medium">View run →</a></p>`;
+            main.insertBefore(banner, main.firstChild);
+
+            // Start polling for this run
+            if (window.pollForRun) {
+              window.pollForRun(banner);
+            }
+          } else {
+            const errorMsg = data.error === 'rerun_forbidden'
+              ? `The GitHub token doesn't have Actions write permission.`
+              : data.error === 'run_not_found'
+              ? `CI run not found. It may have been deleted.`
+              : data.error === 'rerun_unprocessable'
+              ? `GitHub rejected the re-run request. The run may already be completed or running.`
+              : `Failed to re-run the workflow. Check server logs for details.`;
+
+            const banner = document.createElement('div');
+            banner.className = 'mb-6 p-4 bg-red-50 border border-red-200 rounded-lg';
+            banner.innerHTML = `<p class="text-red-800"><strong>Retry failed${repo ? ` (${repo})` : ''}:</strong> ${errorMsg}</p>`;
+            main.insertBefore(banner, main.firstChild);
+          }
+        } catch (e) {
+          console.error('Rerun CI error:', e);
+          const main = document.querySelector('main');
+          if (main) {
+            const banner = document.createElement('div');
+            banner.className = 'mb-6 p-4 bg-red-50 border border-red-200 rounded-lg';
+            banner.innerHTML = `<p class="text-red-800"><strong>Retry failed for ${repo}:</strong> Network error. Please try again.</p>`;
+            main.insertBefore(banner, main.firstChild);
+          }
+        } finally {
+          if (btn) btn.disabled = false;
+        }
+        return false;
+      };
+
       window.refreshRepo = async function(repoName) {
         const btn = document.querySelector(`button[data-refresh="${repoName}"]`);
         if (btn) btn.disabled = true;

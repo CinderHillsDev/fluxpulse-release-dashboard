@@ -210,6 +210,19 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
             </td>
             <td class="px-4 py-2.5 text-right">
               <div class="inline-flex gap-1.5">
+                {repo.ciConclusion === 'failure' || repo.ciConclusion === 'cancelled' ? (
+                  <form method="POST" action="/api/rerun-ci" class="inline-block" onsubmit="return window.submitRerunCi(event)">
+                    <input type="hidden" name="astro.csrf" value={csrfToken} />
+                    <input type="hidden" name="repo" value={repo.name} />
+                    <button
+                      type="submit"
+                      class="px-2.5 py-1 text-xs font-medium bg-orange-600 text-white rounded hover:bg-orange-700 transition"
+                      title={`CI ${repo.ciConclusion} — retry the workflow`}
+                    >
+                      Retry CI
+                    </button>
+                  </form>
+                ) : null}
                 {repo.releaseOnly ? (
                   /* Agent/binary repos are released by pushing a v* tag — no dispatch button */
                   repo.unreleasedCommits > 0 && (
