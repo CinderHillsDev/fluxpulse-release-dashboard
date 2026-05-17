@@ -153,9 +153,8 @@ export async function checkCIStatus(
   repo: string
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
-    // Fetch recent ci.yml workflow runs on main
     const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=1`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?per_page=1`,
       { headers: getHeaders(token) }
     );
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
@@ -165,8 +164,8 @@ export async function checkCIStatus(
     return {
       passing: run.conclusion === 'success',
       runUrl: run.html_url,
-      conclusion: run.conclusion,   // success | failure | cancelled | etc. (null when in_progress)
-      status: run.status,           // queued | in_progress | completed
+      conclusion: run.conclusion,
+      status: run.status,
     };
   } catch {
     return { passing: false, runUrl: null, conclusion: null, status: null };
