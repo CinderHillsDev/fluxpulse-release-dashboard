@@ -4,5 +4,5 @@ export function getEnv(key: string): string | undefined {
 }
 
 export const env = {
-  CF_GH_PAT_FluxPulseReleaseDashboard: process.env.CF_GH_PAT_FluxPulseReleaseDashboard || '',
+  CF_GH_PAT_FluxPulseReleaseDashboard: process.env.GH_PAT || '',
 };

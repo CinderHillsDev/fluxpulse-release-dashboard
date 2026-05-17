@@ -9,7 +9,7 @@ services:
     ports:
       - "4000:4000"
     environment:
-      CF_GH_PAT_FluxPulseReleaseDashboard: ${GH_PAT}
+      GH_PAT: ${GH_PAT}
     restart: unless-stopped
     container_name: fluxpulse-release-dashboard
     labels:
