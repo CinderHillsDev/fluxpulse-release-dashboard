@@ -15,6 +15,7 @@ const options = {
 const server = https.createServer(options, handler);
 
 const port = process.env.PORT || 3000;
-server.listen(port, () => {
+const host = process.env.HOST || '0.0.0.0';
+server.listen(port, host, () => {
   console.log(`HTTPS Server running at https://localhost:${port}`);
 });
