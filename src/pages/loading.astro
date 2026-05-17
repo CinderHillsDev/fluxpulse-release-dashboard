@@ -71,15 +71,15 @@
     </div>
 
     <script>
-      // Auto-redirect to home after a short delay
-      // By this time, either the page is cached or the server has finished loading
+      // Auto-redirect to home after showing loading spinner for a bit
+      // Use query param to prevent infinite redirect loop
       setTimeout(() => {
-        window.location.replace('/');
+        window.location.href = '/?_skip_loading=1';
       }, 2000);
 
-      // Also redirect after max wait time in case something hangs
+      // Fallback: redirect after max wait time in case something hangs
       setTimeout(() => {
-        window.location.replace('/');
+        window.location.href = '/?_skip_loading=1';
       }, 20000);
     </script>
   </body>
