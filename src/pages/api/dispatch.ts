@@ -18,7 +18,10 @@ function getHeaders(token: string) {
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
-  
+  console.log('[dispatch] POST request received');
+  console.log('[dispatch] Method:', request.method);
+  console.log('[dispatch] Headers:', Object.fromEntries(request.headers));
+
   if (!env) {
     return new Response(JSON.stringify({ error: 'Environment not available' }), {
       status: 500,
@@ -26,13 +29,18 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  const formData = await request.formData().catch(() => null);
+  const formData = await request.formData().catch((err) => {
+    console.log('[dispatch] formData error:', err);
+    return null;
+  });
   if (!formData) {
     return new Response(JSON.stringify({ error: 'Invalid form data' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
+
+  console.log('[dispatch] formData entries:', Array.from(formData.entries()));
 
   const repo = String(formData.get('repo') ?? '');
   // 'bump' kept in form schema for backward compat but unused — none of

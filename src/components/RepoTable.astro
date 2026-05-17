@@ -227,7 +227,7 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                 ) : !NO_DEPLOY_REPOS.has(repo.name as any) ? (
                   <>
                     {(repo.unreleasedCommits > 0 || repo.uatDeploy?.conclusion === 'failure') && (
-                      <form method="POST" action="/api/dispatch" class="inline-block">
+                      <form method="POST" action="/api/dispatch" class="inline-block" onsubmit={`window.dispatchRepo(event, '${repo.name}')`}>
                         {csrfToken && <input type="hidden" name="astro.csrf" value={csrfToken} />}
                         <input type="hidden" name="repo" value={repo.name} />
                         <button
