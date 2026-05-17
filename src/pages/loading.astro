@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Release Dashboard - Loading</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      }
+
+      .container {
+        text-align: center;
+        max-width: 400px;
+      }
+
+      .spinner {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 2rem;
+        border: 4px solid rgba(37, 99, 235, 0.2);
+        border-top: 4px solid #2563eb;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      h1 {
+        font-size: 2rem;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+      }
+
+      p {
+        font-size: 1rem;
+        color: #64748b;
+        margin-bottom: 0.5rem;
+      }
+
+      .status {
+        font-size: 0.875rem;
+        color: #94a3b8;
+        margin-top: 2rem;
+      }
+
+      .progress-text {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2563eb;
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="spinner"></div>
+      <h1>Release Dashboard</h1>
+      <p>Loading repository status...</p>
+      <div class="progress-text"><span id="progress">1</span>/<span id="total">10</span></div>
+      <div class="status">Fetching data from GitHub</div>
+    </div>
+
+    <script>
+      const progressEl = document.getElementById('progress');
+      const totalEl = document.getElementById('total');
+      const maxWaitTime = 15000;
+      let elapsed = 0;
+
+      async function updateProgress() {
+        try {
+          const res = await fetch('/api/loading-progress');
+          if (res.ok) {
+            const data = await res.json();
+            progressEl.textContent = data.count;
+            totalEl.textContent = data.max;
+          }
+        } catch (e) {
+          // Silently fail on network errors
+        }
+      }
+
+      // Poll for progress updates
+      const progressInterval = setInterval(updateProgress, 300);
+
+      // Auto-redirect to home after max wait time
+      const timeoutInterval = setInterval(() => {
+        elapsed += 100;
+        if (elapsed >= maxWaitTime) {
+          clearInterval(progressInterval);
+          clearInterval(timeoutInterval);
+          window.location.replace('/');
+        }
+      }, 100);
+
+      // Try redirecting after a short initial delay
+      setTimeout(() => {
+        if (window.location.pathname === '/loading') {
+          window.location.replace('/');
+        }
+      }, 1500);
+    </script>
+  </body>
+</html>

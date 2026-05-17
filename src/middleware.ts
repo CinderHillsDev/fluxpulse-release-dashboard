@@ -17,5 +17,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
     });
   }
   context.locals.csrfToken = token;
+
+  // Show loading page on first visit to home page
+  if (context.url.pathname === '/' && !context.cookies.has('visited')) {
+    context.cookies.set('visited', 'true', {
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+    return context.redirect('/loading');
+  }
+
   return next();
 });

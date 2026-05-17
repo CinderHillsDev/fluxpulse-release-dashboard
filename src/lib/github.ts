@@ -439,13 +439,24 @@ export async function fetchRepoStatus(token: string, repo: string): Promise<Repo
   };
 }
 
+let progressCallback: ((count: number, total: number) => Promise<void>) | null = null;
+
+export function setProgressCallback(callback: (count: number, total: number) => Promise<void>) {
+  progressCallback = callback;
+}
+
 export async function getRepoStatus(token: string, repos?: string[]): Promise<RepoStatus[]> {
   const reposToFetch = repos ?? REPOS;
   const allResults: RepoStatus[] = [];
+  let count = 0;
 
   for (const repo of reposToFetch) {
     const status = await fetchRepoStatus(token, repo);
     allResults.push(status);
+    count++;
+    if (progressCallback) {
+      await progressCallback(count, reposToFetch.length);
+    }
   }
 
   return allResults;

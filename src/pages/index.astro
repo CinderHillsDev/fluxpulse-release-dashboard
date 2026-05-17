@@ -3,9 +3,18 @@ import { env } from '@/lib/env';
 import Layout from '@/layouts/Layout.astro';
 import Navbar from '@/components/Navbar.astro';
 import RepoTable from '@/components/RepoTable.astro';
-import { getRepoStatus } from '@/lib/github';
+import { getRepoStatus, setProgressCallback } from '@/lib/github';
 
 const token = env.CF_GH_PAT_FluxPulseReleaseDashboard;
+
+// Set up progress callback to update loading progress
+setProgressCallback(async (count, total) => {
+  // Update global progress state
+  if (globalThis.loadingProgress) {
+    globalThis.loadingProgress.count = count;
+    globalThis.loadingProgress.max = total;
+  }
+});
 
 const repos = await getRepoStatus(token);
 const now = new Date().toLocaleString();
