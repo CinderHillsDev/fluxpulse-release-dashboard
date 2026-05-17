@@ -6,7 +6,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // For local development, use a fixed CSRF token
   context.cookies.set('astro.csrf', DEV_CSRF_TOKEN, {
     httpOnly: false,
-    secure: false,
+    secure: true,
     sameSite: 'lax',
     path: '/',
   });

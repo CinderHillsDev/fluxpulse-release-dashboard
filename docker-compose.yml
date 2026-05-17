@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     image: fluxpulse-release-dashboard:latest
     ports:
-      - "3000:4321"
+      - "3000:3000"
     environment:
       CF_GH_PAT_FluxPulseReleaseDashboard: ${GH_PAT}
     restart: unless-stopped

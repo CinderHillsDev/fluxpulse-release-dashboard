@@ -9,10 +9,9 @@ COPY . .
 
 RUN npm run build
 
-EXPOSE 4321
+EXPOSE 3000
 
 ENV NODE_ENV=production
-ENV HOST=0.0.0.0
-ENV PORT=4321
+ENV PORT=3000
 
-CMD ["node", "./dist/server/entry.mjs"]
+CMD ["node", "./server.mjs"]
