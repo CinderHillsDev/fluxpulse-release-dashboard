@@ -69,11 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
     const inputs: Record<string, string> = isInfra
       ? {
           env: isProd ? 'prod' : 'uat',
-          mode: 'whatif',  // Start with whatif for safety (user can review then apply)
-          deployRunnerVm: 'true',
-          useRunnerForSeeding: 'true',
-          runnerVmRegion: 'southcentralus',
-          reuseExistingRunner: 'false',
+          // mode defaults to 'whatif' in workflow, so we omit it here
         }
       : {};
 
