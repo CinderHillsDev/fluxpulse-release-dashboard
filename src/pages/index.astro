@@ -158,8 +158,9 @@ const batchError = url.searchParams.get('batch_error');
     <RepoTable repos={repos} />
 
     <script>
-      window.submitDispatch = async function(form) {
-        form.preventDefault?.() || event.preventDefault();
+      window.submitDispatch = async function(event) {
+        event.preventDefault();
+        const form = event.target;
         const repo = form.elements.repo?.value;
         const workflow = form.elements.workflow?.value || 'release';
 
