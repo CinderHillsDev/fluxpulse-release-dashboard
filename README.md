@@ -1,6 +1,6 @@
 # FluxPulse Release Dashboard
 
-A Cloudflare Pages-hosted dashboard for managing releases across the FluxPulse multi-repo workspace.
+A Node.js/Astro dashboard for managing releases across the FluxPulse multi-repo workspace.
 
 ## Features
 
@@ -15,56 +15,35 @@ A Cloudflare Pages-hosted dashboard for managing releases across the FluxPulse m
 ### Prerequisites
 
 - Node.js 18+
-- Wrangler CLI (`npm install -g @cloudflare/wrangler`)
 - GitHub Personal Access Token (fine-grained: `repo:read`, `actions:write` on all repos)
-- Cloudflare Pages project + KV namespace
 
 ### Local Development
 
 ```bash
 npm install
-wrangler pages dev
+npm run dev
 ```
 
-Runs at `http://localhost:8788`.
+Runs at `http://localhost:3000` (or the configured dev port).
 
 ### Deployment
 
-```bash
-npm run build
-npm run deploy
-```
-
-Or use GitHub Actions (see `.github/workflows/deploy.yml`).
+The app is containerized and deployed via GitHub Actions. See `.github/workflows/deploy.yml` for the deployment pipeline.
 
 ## Configuration
 
-### Cloudflare Secrets
+### Environment Variables
 
-Set these via `wrangler secret put`:
+Set these in your `.env.local` or deployment environment:
 
-```bash
-wrangler secret put CF_GH_PAT_FluxPulseReleaseDashboard  # Fine-grained PAT: repo:read, actions:read
-wrangler secret put DASHBOARD_TOKEN       # Any random string (e.g., openssl rand -base64 32)
-```
-
-### wrangler.toml
-
-Update the KV namespace IDs:
-
-```toml
-[[kv_namespaces]]
-binding = "CACHE"
-id = "YOUR_KV_NAMESPACE_ID_HERE"
-preview_id = "YOUR_KV_PREVIEW_NAMESPACE_ID_HERE"
-```
+- `CF_GH_PAT_FluxPulseReleaseDashboard` — GitHub Personal Access Token (fine-grained: repo:read, actions:read)
 
 ## Architecture
 
-- **Frontend**: React + TypeScript + Vite (SPA)
-- **Backend**: Cloudflare Pages Functions (TypeScript)
-- **Cache**: Cloudflare KV (5-minute TTL for status, 2-minute for PRs)
-- **Auth**: Bearer token in sessionStorage (not persisted)
+- **Framework**: Astro (SSR + Island components)
+- **Frontend**: TypeScript + Tailwind CSS
+- **Backend**: Astro API routes (Node.js)
+- **Container**: Docker (deployed to production)
 
 ## API Endpoints
 

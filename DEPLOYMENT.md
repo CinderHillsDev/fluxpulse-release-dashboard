@@ -1,107 +1,66 @@
 # Deployment Guide
 
+## Overview
+
+The release dashboard is a Node.js/Astro application deployed as a Docker container via GitHub Actions.
+
 ## Prerequisites
 
-- Cloudflare account with Workers enabled
-- `wrangler` CLI installed and authenticated (`wrangler auth`)
-- GitHub OAuth App configured
-- Cloudflare API token (for CI/CD deployments)
+- Docker
+- GitHub Personal Access Token (fine-grained: `repo:read`, `actions:write` on all repos)
 
-## Setting Up KV Namespaces
+## Local Deployment
 
-The dashboard requires a KV namespace for OAuth state tokens and session storage.
+### Setup
 
-KV namespaces are already created (IDs in `wrangler.toml`). If you need to recreate them:
-
-```bash
-wrangler kv:namespace create fluxpulse-dashboard-kv
-wrangler kv:namespace create fluxpulse-dashboard-kv --preview
-```
-
-## Configuration
-
-### 1. Set Cloudflare Account ID
-
-Update `wrangler.toml` with your Cloudflare account ID:
-
-```toml
-[env.production]
-account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
-```
-
-Find your account ID at: https://dash.cloudflare.com/
-
-### 2. Set DNS Routes (optional)
-
-If deploying to a custom domain, update the `routes` in `wrangler.toml`:
-
-```toml
-routes = [
-  { pattern = "release-dashboard.YOUR_DOMAIN/*", zone_name = "YOUR_DOMAIN" }
-]
-```
-
-### 3. Set GitHub Secrets
-
-```bash
-wrangler secret put GITHUB_CLIENT_ID --env production
-wrangler secret put GITHUB_CLIENT_SECRET --env production
-wrangler secret put CF_GH_PAT_FluxPulseReleaseDashboard --env production
-```
-
-When prompted, enter values from your GitHub OAuth App and Personal Access Token.
-
-## Deploying
-
-### Manual Deploy
-
-```bash
-npm run deploy  # Builds and deploys to production
-```
-
-Or with explicit environment:
-
-```bash
-npm run build
-wrangler deploy --main ./dist/server/entry.mjs --env production
-```
-
-### Local Preview
-
-```bash
-npm run preview  # Starts local Wrangler dev server
-```
-
-## Verifying Deployment
-
-1. Navigate to your Worker's URL
-2. You should be redirected to `/api/auth/login`
-3. Click "Sign in with GitHub"
-4. Complete GitHub OAuth flow
-5. If successful, you'll see the release dashboard
-
-## Troubleshooting
-
-### Authentication fails with 500 error
-- Verify all three GitHub secrets are set: `wrangler secret list --env production`
-- Check that `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` match your OAuth App
-
-### OAuth redirect loop
-- Verify GitHub OAuth App redirect URI matches your Worker URL: `https://YOUR_WORKER_URL/api/auth/callback`
-- Check that callback route is accessible (no auth middleware blocking it)
-
-### KV operations timeout
-- Verify KV namespace IDs in `wrangler.toml` match created namespaces
-- Check Cloudflare dashboard to ensure KV namespaces exist
-
-## Local Development
-
-1. Copy `.dev.vars.example` to `.dev.vars`
-2. Add your GitHub PAT token:
+1. Create `.env.local`:
    ```
    CF_GH_PAT_FluxPulseReleaseDashboard=ghp_xxxxxxxxxxxx
    ```
-   (Get a token from https://github.com/settings/tokens with repo read access)
-3. Run `npm run dev`
-4. Open `http://localhost:3000` in your browser
-5. Dashboard will load without requiring authentication locally
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Run locally:
+   ```bash
+   npm run dev
+   ```
+
+   Opens at `http://localhost:3000`
+
+### Build and Test
+
+```bash
+npm run build
+npm run preview
+```
+
+## Production Deployment
+
+The app is automatically deployed via GitHub Actions when you push to the main branch.
+
+### Manual Docker Build
+
+```bash
+docker build -t fluxpulse-release-dashboard:latest .
+docker run -p 3000:3000 \
+  -e CF_GH_PAT_FluxPulseReleaseDashboard=ghp_xxxxxxxxxxxx \
+  fluxpulse-release-dashboard:latest
+```
+
+## Environment Variables
+
+- `CF_GH_PAT_FluxPulseReleaseDashboard` — GitHub PAT with `repo:read` and `actions:write` scope
+
+## Troubleshooting
+
+### "Failed to dispatch the workflow"
+- Check that the GitHub PAT has `actions:write` permission
+- Verify the target workflow exists and has `workflow_dispatch` enabled
+- Check server logs for detailed error messages
+
+### "Check server logs for details"
+- Review the application logs in the Docker container or deployment platform
+- Verify the GitHub API is accessible from your environment

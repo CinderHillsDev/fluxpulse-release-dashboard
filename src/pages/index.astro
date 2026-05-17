@@ -28,9 +28,9 @@ const errorMessages: Record<string, string> = {
 };
 
 const dispatchErrorMessages: Record<string, string> = {
-  dispatch_forbidden: `The GitHub token doesn't have Actions write permission. Update the GITHUB_TOKEN Cloudflare secret with a PAT that has "Actions: Read and write".`,
+  dispatch_forbidden: `The GitHub token doesn't have Actions write permission. Use a PAT with "Actions: Read and write" scope.`,
   dispatch_unprocessable: `Workflow dispatch was rejected by GitHub (422). The workflow may not have workflow_dispatch enabled or the ref is invalid.`,
-  dispatch_failed: `Failed to dispatch the workflow. Check Cloudflare Worker logs for details.`,
+  dispatch_failed: `Failed to dispatch the workflow. Check server logs for details.`,
 };
 
 const batchOk = url.searchParams.get('batch_ok');
@@ -98,7 +98,7 @@ const batchError = url.searchParams.get('batch_error');
             <span>
               <code class="font-mono">{r}</code>{i < arr.length - 1 ? ', ' : ''}
             </span>
-          ))}. Check Cloudflare Worker logs for details.
+          ))}. Check server logs for details.
         </p>
       </div>
     )}
@@ -139,10 +139,10 @@ const batchError = url.searchParams.get('batch_error');
             }
           } else {
             const errorMsg = data.error === 'dispatch_forbidden'
-              ? `The GitHub token doesn't have Actions write permission. Update the GITHUB_TOKEN Cloudflare secret with a PAT that has "Actions: Read and write".`
+              ? `The GitHub token doesn't have Actions write permission. Use a PAT with "Actions: Read and write" scope.`
               : data.error === 'dispatch_unprocessable'
               ? `Workflow dispatch was rejected by GitHub (422). The workflow may not have workflow_dispatch enabled or the ref is invalid.`
-              : `Failed to dispatch the workflow. Check Cloudflare Worker logs for details.`;
+              : `Failed to dispatch the workflow. Check server logs for details.`;
 
             const banner = document.createElement('div');
             banner.className = 'mb-6 p-4 bg-red-50 border border-red-200 rounded-lg';
