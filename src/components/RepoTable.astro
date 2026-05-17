@@ -222,7 +222,19 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                       Retry CI
                     </button>
                   </form>
-                ) : null}
+                ) : (
+                  <form method="POST" action="/api/rerun-ci" class="inline-block" onsubmit="return window.submitRerunCi(event)">
+                    <input type="hidden" name="astro.csrf" value={csrfToken} />
+                    <input type="hidden" name="repo" value={repo.name} />
+                    <button
+                      type="submit"
+                      class="w-20 px-2.5 py-1 text-xs font-medium bg-slate-400 text-white rounded hover:bg-slate-500 transition text-center"
+                      title="Run CI workflow on demand"
+                    >
+                      Run CI
+                    </button>
+                  </form>
+                )}
                 {repo.releaseOnly ? (
                   /* Agent/binary repos are released by pushing a v* tag — no dispatch button */
                   repo.unreleasedCommits > 0 && (
