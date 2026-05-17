@@ -1,8 +1,6 @@
-import { defineMiddleware } from 'astro:middleware';
+import { defineMiddleware, sequence } from 'astro:middleware';
 
-// In Astro 6+, CSRF protection is automatic for POST requests.
-// This middleware makes the CSRF token available to page components.
-export const onRequest = defineMiddleware(async (context, next) => {
+const csrfMiddleware = defineMiddleware(async (context, next) => {
   // Get or generate a CSRF token for form submissions
   let token = context.cookies.get('astro.csrf')?.value;
   if (!token) {
@@ -11,23 +9,27 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.cookies.set('astro.csrf', token, {
       httpOnly: false,
       secure: true,
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24, // 24 hours
     });
   }
   context.locals.csrfToken = token;
+  return next();
+});
 
+const loadingMiddleware = defineMiddleware(async (context, next) => {
   // Show loading page on first visit to home page
   if (context.url.pathname === '/' && !context.cookies.has('visited')) {
     context.cookies.set('visited', 'true', {
       secure: true,
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
     return context.redirect('/loading');
   }
-
   return next();
 });
+
+export const onRequest = sequence(csrfMiddleware, loadingMiddleware);

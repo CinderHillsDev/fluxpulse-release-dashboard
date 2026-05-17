@@ -60,12 +60,6 @@
         margin-top: 2rem;
       }
 
-      .progress-text {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #2563eb;
-        margin-top: 1rem;
-      }
     </style>
   </head>
   <body>
@@ -73,48 +67,20 @@
       <div class="spinner"></div>
       <h1>Release Dashboard</h1>
       <p>Loading repository status...</p>
-      <div class="progress-text"><span id="progress">1</span>/<span id="total">10</span></div>
       <div class="status">Fetching data from GitHub</div>
     </div>
 
     <script>
-      const progressEl = document.getElementById('progress');
-      const totalEl = document.getElementById('total');
-      const maxWaitTime = 15000;
-      let elapsed = 0;
-
-      async function updateProgress() {
-        try {
-          const res = await fetch('/api/loading-progress');
-          if (res.ok) {
-            const data = await res.json();
-            progressEl.textContent = data.count;
-            totalEl.textContent = data.max;
-          }
-        } catch (e) {
-          // Silently fail on network errors
-        }
-      }
-
-      // Poll for progress updates
-      const progressInterval = setInterval(updateProgress, 300);
-
-      // Auto-redirect to home after max wait time
-      const timeoutInterval = setInterval(() => {
-        elapsed += 100;
-        if (elapsed >= maxWaitTime) {
-          clearInterval(progressInterval);
-          clearInterval(timeoutInterval);
-          window.location.replace('/');
-        }
-      }, 100);
-
-      // Try redirecting after a short initial delay
+      // Auto-redirect to home after a short delay
+      // By this time, either the page is cached or the server has finished loading
       setTimeout(() => {
-        if (window.location.pathname === '/loading') {
-          window.location.replace('/');
-        }
-      }, 1500);
+        window.location.replace('/');
+      }, 2000);
+
+      // Also redirect after max wait time in case something hangs
+      setTimeout(() => {
+        window.location.replace('/');
+      }, 20000);
     </script>
   </body>
 </html>
