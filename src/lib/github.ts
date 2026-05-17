@@ -87,7 +87,7 @@ export async function fetchDeploymentByEnvironment(
     // current SHA, which would otherwise make unreleased/pending counts
     // appear as zero even though UAT is running old code.
     const deployRes = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/deployments?environment=${environment}&per_page=5`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/deployments?environment=${environment}&per_page=5&sort=created&direction=desc`,
       { headers: getHeaders(token) }
     );
     if (!deployRes.ok) {
