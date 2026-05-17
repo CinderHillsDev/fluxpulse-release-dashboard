@@ -47,37 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    // Get the most recent run on main branch to determine the workflow file
-    const runsRes = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/runs?branch=main&per_page=1`,
-      { headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard) }
-    );
-
-    if (!runsRes.ok) {
-      console.error(`Failed to fetch runs for ${repo}: ${runsRes.status}`);
-      return new Response(JSON.stringify({ ok: false, error: 'runs_fetch_failed' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const runsData = (await runsRes.json()) as {
-      workflow_runs: Array<{ id: number; status: string; conclusion: string | null; name: string; path: string; html_url: string }>
-    };
-
-    if (!runsData.workflow_runs || runsData.workflow_runs.length === 0) {
-      console.error(`No runs found for ${repo}`);
-      return new Response(JSON.stringify({ ok: false, error: 'no_runs_found' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const latestRun = runsData.workflow_runs[0];
-    const workflowPath = latestRun.path;
-    // Extract just the filename from the full path (e.g., ".github/workflows/ci.yml" -> "ci.yml")
-    const workflowFile = workflowPath.split('/').pop() || workflowPath;
-
+    const workflowFile = 'ci.yml';
     console.log(`[rerun-ci] Triggering fresh workflow for ${repo} (workflow: ${workflowFile})`);
 
     // Trigger a fresh workflow run via workflow_dispatch on main
