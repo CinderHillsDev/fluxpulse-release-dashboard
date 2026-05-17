@@ -153,15 +153,15 @@ export async function checkCIStatus(
   repo: string
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
-    // Fetch most recent ci.yml workflow run on main
+    // Fetch most recent ci.yml workflow run on main, sorted by created_at descending
     const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=10`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=20&created=desc`,
       { headers: getHeaders(token) }
     );
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
     const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string })[] };
-    // Find the first ci run (filter by workflow name to exclude deploys)
-    const run = data.workflow_runs.find((r: any) => r.name === 'ci' || r.name === 'CI');
+    // Get the first completed run (ci workflow)
+    const run = data.workflow_runs.find((r: any) => (r.name === 'ci' || r.name === 'CI') && r.status === 'completed');
     if (!run) return { passing: false, runUrl: null, conclusion: null, status: null };
     return {
       passing: run.conclusion === 'success',
