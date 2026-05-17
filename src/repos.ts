@@ -29,6 +29,14 @@ export const RELEASE_ONLY_REPOS = new Set<RepoName>([
   'fluxpulse-agent-windows',
 ]);
 
+/**
+ * Repos that don't deploy anywhere (specs, docs, etc).
+ * These don't show UAT/Prod deployment buttons or dots.
+ */
+export const NO_DEPLOY_REPOS = new Set<RepoName>([
+  'fluxpulse-specs',
+]);
+
 export const HEALTH_ENDPOINTS: Partial<Record<RepoName, { uat?: string; prod?: string }>> = {
   'fluxpulse-platform':      { uat: 'https://api-fp-uat.azurewebsites.net/health/ready',   prod: 'https://api-fp-prod.azurewebsites.net/health/ready' },
   'fluxpulse-portal':        { uat: 'https://portal.fluxpulse.dev',                         prod: 'https://portal.fluxpulse.app' },
