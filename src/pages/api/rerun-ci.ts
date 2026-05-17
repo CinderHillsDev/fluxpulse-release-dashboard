@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    // Get the most recent run on main branch
+    // Get the most recent run on main branch to determine the workflow file
     const runsRes = await fetch(
       `${GH_API}/repos/${GH_OWNER}/${repo}/actions/runs?branch=main&per_page=1`,
       { headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard) }
@@ -62,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const runsData = (await runsRes.json()) as {
-      workflow_runs: Array<{ id: number; status: string; conclusion: string | null; html_url: string }>
+      workflow_runs: Array<{ id: number; status: string; conclusion: string | null; name: string; path: string; html_url: string }>
     };
 
     if (!runsData.workflow_runs || runsData.workflow_runs.length === 0) {
@@ -74,46 +74,66 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const latestRun = runsData.workflow_runs[0];
-    const runId = latestRun.id;
+    const workflowPath = latestRun.path;
 
-    console.log(`[rerun-ci] Attempting to re-run ${repo} run ${runId} (status: ${latestRun.status}, conclusion: ${latestRun.conclusion})`);
+    console.log(`[rerun-ci] Triggering fresh workflow for ${repo} (workflow: ${workflowPath})`);
 
-    // Re-run the workflow
-    const rerunRes = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/runs/${runId}/rerun`,
+    // Trigger a fresh workflow run via workflow_dispatch on main
+    const dispatchRes = await fetch(
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowPath}/dispatches`,
       {
         method: 'POST',
         headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard),
+        body: JSON.stringify({
+          ref: 'main',
+          inputs: {},
+        }),
       }
     );
 
-    if (!rerunRes.ok) {
-      const detail = await rerunRes.text().catch(() => '');
-      const code = rerunRes.status === 403 ? 'rerun_forbidden'
-        : rerunRes.status === 404 ? 'run_not_found'
-        : rerunRes.status === 422 ? 'rerun_unprocessable'
-        : 'rerun_failed';
-      console.error(`Rerun failed ${rerunRes.status} for ${repo}/${runId}:`, detail);
+    if (!dispatchRes.ok) {
+      const detail = await dispatchRes.text().catch(() => '');
+      const code = dispatchRes.status === 403 ? 'dispatch_forbidden'
+        : dispatchRes.status === 404 ? 'workflow_not_found'
+        : dispatchRes.status === 422 ? 'dispatch_unprocessable'
+        : 'dispatch_failed';
+      console.error(`Dispatch failed ${dispatchRes.status} for ${repo}/${workflowPath}:`, detail);
       return new Response(JSON.stringify({ ok: false, error: code, repo }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[rerun-ci] Successfully re-ran ${repo} run ${runId}`);
+    // Give GitHub ~2s to register the new run, then fetch its URL
+    await new Promise((r) => setTimeout(r, 2000));
+    let runUrl = `https://github.com/${GH_OWNER}/${repo}/actions`;
+    try {
+      const newRunsRes = await fetch(
+        `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowPath}/runs?per_page=1`,
+        { headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard) }
+      );
+      if (newRunsRes.ok) {
+        const data = (await newRunsRes.json()) as { workflow_runs: { id: number; html_url: string }[] };
+        const newRun = data.workflow_runs[0];
+        if (newRun) runUrl = newRun.html_url;
+      }
+    } catch {
+      // fall through to actions page link
+    }
+
+    console.log(`[rerun-ci] Successfully triggered fresh workflow for ${repo}`);
 
     return new Response(JSON.stringify({
       ok: true,
       repo,
-      runUrl: latestRun.html_url,
-      runId
+      runUrl
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('rerun-ci error:', error);
-    return new Response(JSON.stringify({ ok: false, error: 'rerun_failed' }), {
+    return new Response(JSON.stringify({ ok: false, error: 'dispatch_failed' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
