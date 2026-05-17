@@ -184,17 +184,9 @@ const batchError = url.searchParams.get('batch_error');
 
           if (data.ok) {
             const banner = document.createElement('div');
-            banner.id = 'dispatch-banner';
-            banner.dataset.runUrl = data.runUrl;
-            banner.dataset.repo = repo;
             banner.className = 'mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg';
             banner.innerHTML = `<p class="text-amber-800"><strong>CI retried:</strong> re-running workflow for <code class="font-mono">${repo}</code>. <a href="${data.runUrl}" target="_blank" rel="noreferrer" class="underline font-medium">View run →</a></p>`;
             main.insertBefore(banner, main.firstChild);
-
-            // Start polling for this run
-            if (window.pollForRun) {
-              window.pollForRun(banner);
-            }
           } else {
             const errorMsg = data.error === 'rerun_forbidden'
               ? `The GitHub token doesn't have Actions write permission.`
