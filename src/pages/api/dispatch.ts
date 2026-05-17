@@ -66,7 +66,16 @@ export const POST: APIRoute = async ({ request }) => {
     // Infrastructure uses deploy.yml with env input; other repos use deploy-uat/deploy-prod
     const isInfra = repo === 'fluxpulse-infrastructure';
     const workflowFile = isInfra ? 'deploy.yml' : (isRelease ? 'deploy-uat.yml' : 'deploy-prod.yml');
-    const inputs: Record<string, string> = isInfra ? { env: isProd ? 'prod' : 'uat' } : {};
+    const inputs: Record<string, string> = isInfra
+      ? {
+          env: isProd ? 'prod' : 'uat',
+          mode: 'whatif',  // Start with whatif for safety (user can review then apply)
+          deployRunnerVm: 'true',
+          useRunnerForSeeding: 'true',
+          runnerVmRegion: 'southcentralus',
+          reuseExistingRunner: 'false',
+        }
+      : {};
 
     // Trigger workflow_dispatch
     const dispatchRes = await fetch(
