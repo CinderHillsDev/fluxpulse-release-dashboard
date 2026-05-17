@@ -56,7 +56,6 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
 >
   <span id="batch-count" class="text-sm font-medium text-blue-800">0 selected</span>
   <form id="batch-form" method="POST" action="/api/dispatch-batch" class="inline-flex gap-2">
-    <input type="hidden" name="astro.csrf" value="development-csrf-token-12345678" />
     <!-- repos[] inputs are injected by JS -->
     <button
       type="submit"
@@ -228,7 +227,6 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                   <>
                     {(repo.unreleasedCommits > 0 || repo.uatDeploy?.conclusion === 'failure') && (
                       <form method="POST" action="/api/dispatch" class="inline-block">
-                        <input type="hidden" name="astro.csrf" value="development-csrf-token-12345678" />
                         <input type="hidden" name="repo" value={repo.name} />
                         <button
                           type="submit"
@@ -241,7 +239,6 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                     )}
                     {repo.syncState === 'uat-ahead' && (
                       <form method="POST" action="/api/dispatch" class="inline-block">
-                        <input type="hidden" name="astro.csrf" value="development-csrf-token-12345678" />
                         <input type="hidden" name="repo" value={repo.name} />
                         <input type="hidden" name="workflow" value="deploy-prod" />
                         <button
