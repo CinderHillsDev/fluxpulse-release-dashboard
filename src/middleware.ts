@@ -4,11 +4,11 @@ import { defineMiddleware } from 'astro:middleware';
 // This middleware makes the CSRF token available to page components.
 export const onRequest = defineMiddleware(async (context, next) => {
   // Get or generate a CSRF token for form submissions
-  let token = context.cookies.get('__Host-astro.csrf')?.value;
+  let token = context.cookies.get('astro.csrf')?.value;
   if (!token) {
     token = crypto.getRandomValues(new Uint8Array(32))
       .reduce((s, b) => s + (b < 16 ? '0' : '') + b.toString(16), '');
-    context.cookies.set('__Host-astro.csrf', token, {
+    context.cookies.set('astro.csrf', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',

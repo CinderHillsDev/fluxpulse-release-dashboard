@@ -1,15 +1,32 @@
 version: '3.8'
 
 services:
-  dashboard:
+  astro:
     build:
       context: .
       dockerfile: Dockerfile
     image: fluxpulse-release-dashboard:latest
-    ports:
-      - "3000:4321"
+    expose:
+      - "4321"
     environment:
       CF_GH_PAT_FluxPulseReleaseDashboard: ${GH_PAT}
+    restart: unless-stopped
+    container_name: fluxpulse-release-dashboard-astro
+    labels:
+      com.docker.compose.project: "fluxpulse"
+      service.name: "Release Dashboard (Astro)"
+      service.group: "fluxpulse"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+      - "3000:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - astro
     restart: unless-stopped
     container_name: fluxpulse-release-dashboard
     labels:
