@@ -59,19 +59,9 @@ export const POST: APIRoute = async ({ request }) => {
     // "Release" button → dispatch deploy-uat.yml (the UAT promotion workflow
     // each repo already owns). "Deploy Prod" button → dispatch deploy-prod.yml.
     // No release.yml — semver bumping isn't part of the model.
-    // Exception: fluxpulse-infrastructure uses single deploy.yml with 'env' input.
     const isRelease = workflow !== 'deploy-prod';
-    const isProd = workflow === 'deploy-prod';
-
-    // Infrastructure uses deploy.yml with env input; other repos use deploy-uat/deploy-prod
-    const isInfra = repo === 'fluxpulse-infrastructure';
-    const workflowFile = isInfra ? 'deploy.yml' : (isRelease ? 'deploy-uat.yml' : 'deploy-prod.yml');
-    const inputs: Record<string, string> = isInfra
-      ? {
-          env: isProd ? 'prod' : 'uat',
-          // mode defaults to 'whatif' in workflow, so we omit it here
-        }
-      : {};
+    const workflowFile = isRelease ? 'deploy-uat.yml' : 'deploy-prod.yml';
+    const inputs: Record<string, string> = {};
 
     // Trigger workflow_dispatch
     const dispatchRes = await fetch(
