@@ -158,13 +158,33 @@ const batchError = url.searchParams.get('batch_error');
     <RepoTable repos={repos} />
 
     <script>
+      window.submitDispatch = async function(form) {
+        form.preventDefault?.() || event.preventDefault();
+        const repo = form.elements.repo?.value;
+        const workflow = form.elements.workflow?.value || 'release';
+
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form)
+          });
+          if (res.ok) {
+            location.href = `/?dispatch_ok=${encodeURIComponent(repo)}&workflow=${workflow}`;
+          } else {
+            location.href = `/?dispatch_error=dispatch_failed&repo=${encodeURIComponent(repo)}`;
+          }
+        } catch (e) {
+          location.href = `/?dispatch_error=dispatch_failed&repo=${encodeURIComponent(repo)}`;
+        }
+        return false;
+      };
+
       window.refreshRepo = async function(repoName) {
         const btn = document.querySelector(`button[data-refresh="${repoName}"]`);
         if (btn) btn.disabled = true;
         try {
           const res = await fetch(`/api/repo-status?repo=${encodeURIComponent(repoName)}`);
           if (res.ok) {
-            const data = await res.json();
             location.reload();
           }
         } finally {
