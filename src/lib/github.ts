@@ -169,7 +169,8 @@ export async function checkCIStatus(
 
     for (const run of data.workflow_runs) {
       if (run.head_branch !== 'main') continue;
-      if (run.name !== 'ci' && run.name !== 'CI') continue;
+      // Match ci workflow (could be named 'ci', 'CI', or 'ci run')
+      if (run.name !== 'ci' && run.name !== 'CI' && run.name !== 'ci run') continue;
 
       const runTime = new Date(run.created_at);
 
