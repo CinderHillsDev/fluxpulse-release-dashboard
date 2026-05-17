@@ -160,35 +160,27 @@ export async function checkCIStatus(
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
     const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string; created_at: string; head_branch: string; name: string })[] };
 
-    // Find the most recent SUCCESSFUL run on main with name 'ci' or 'CI'
-    // Fall back to most recent run if no successful one exists
-    let successfulRun = null;
-    let mostRecentRun = null;
-    let mostRecentTime = new Date(0);
-    let successTime = new Date(0);
+    // Find the first successful run on main with name 'ci'
+    // If no successful run, fall back to first run on main
+    let selectedRun = null;
 
     for (const run of data.workflow_runs) {
       if (run.head_branch !== 'main') continue;
-      // Match ci workflow (could be named 'ci', 'CI', or 'ci run')
-      if (run.name !== 'ci' && run.name !== 'CI' && run.name !== 'ci run') continue;
+      if (run.name !== 'ci' && run.name !== 'CI') continue;
 
-      const runTime = new Date(run.created_at);
-
-      // Track most recent overall
-      if (runTime > mostRecentTime) {
-        mostRecentTime = runTime;
-        mostRecentRun = run;
+      // Prefer successful conclusion
+      if (run.conclusion === 'success') {
+        selectedRun = run;
+        break;
       }
 
-      // Track most recent successful
-      if (run.conclusion === 'success' && runTime > successTime) {
-        successTime = runTime;
-        successfulRun = run;
+      // Fall back to first run if no successful one found yet
+      if (!selectedRun) {
+        selectedRun = run;
       }
     }
 
-    // Prefer successful run; fall back to most recent if no successful run found
-    const run = successfulRun || mostRecentRun;
+    const run = selectedRun;
     if (!run) return { passing: false, runUrl: null, conclusion: null, status: null };
     return {
       passing: run.conclusion === 'success',
