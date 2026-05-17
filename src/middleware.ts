@@ -9,9 +9,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     token = crypto.getRandomValues(new Uint8Array(32))
       .reduce((s, b) => s + (b < 16 ? '0' : '') + b.toString(16), '');
     context.cookies.set('astro.csrf', token, {
-      httpOnly: true,
+      httpOnly: false,
       secure: true,
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/',
       maxAge: 60 * 60 * 24, // 24 hours
     });
@@ -22,7 +22,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (context.url.pathname === '/' && !context.cookies.has('visited')) {
     context.cookies.set('visited', 'true', {
       secure: true,
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/',
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
