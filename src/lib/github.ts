@@ -24,6 +24,8 @@ interface GitHubWorkflowRun {
   conclusion: string | null;
   created_at: string;
   updated_at: string;
+  head_sha: string;
+  html_url: string;
 }
 
 interface GitHubTag {
@@ -82,63 +84,51 @@ export async function fetchDeploymentByEnvironment(
   environment: string
 ): Promise<DeployInfo | null> {
   try {
-    // Fetch recent deployments. We need up to ~5 so we can find the last
-    // *successful* one — a failed deploy still creates a record at the
-    // current SHA, which would otherwise make unreleased/pending counts
-    // appear as zero even though UAT is running old code.
-    const deployRes = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/deployments?environment=${environment}&per_page=5&sort=created&direction=desc`,
+    const isReleaseOnly = RELEASE_ONLY_REPOS.has(repo as any);
+    const workflowFile = isReleaseOnly
+      ? 'release.yml'
+      : environment === 'uat' ? 'deploy-uat.yml' : 'deploy-prod.yml';
+
+    // Fetch workflow runs sorted by created_at desc (most recent first).
+    // This captures in-progress runs, not just completed ones.
+    const res = await fetch(
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}/runs?per_page=50`,
       { headers: getHeaders(token) }
     );
-    if (!deployRes.ok) {
-      console.error(`fetchDeploymentByEnvironment failed for ${repo}/${environment}:`, deployRes.status);
+    if (!res.ok) {
+      console.error(`fetchDeploymentByEnvironment failed for ${repo}/${environment}:`, res.status);
       return null;
     }
-    const deployments = (await deployRes.json()) as GitHubDeployment[];
-    if (deployments.length === 0) return null;
+    const data = (await res.json()) as { workflow_runs: GitHubWorkflowRun[] };
+    if (data.workflow_runs.length === 0) return null;
 
-    // Fetch statuses for the most recent deployment to get latest conclusion.
-    const latestDeploy = deployments[0];
-    const latestStatusRes = await fetch(`${latestDeploy.statuses_url}?per_page=1`, {
-      headers: getHeaders(token),
-    });
-    const latestStatuses = latestStatusRes.ok
-      ? ((await latestStatusRes.json()) as GitHubDeploymentStatus[])
-      : [];
-    const latestStatus = latestStatuses[0];
+    // Use the most recent run (API returns sorted by created_at desc by default)
+    const latestRun = data.workflow_runs[0];
     const latestConclusion: DeployInfo['conclusion'] =
-      latestStatus?.state === 'success' ? 'success'
-      : latestStatus?.state === 'failure' ? 'failure'
+      latestRun.conclusion === 'success' ? 'success'
+      : latestRun.conclusion === 'failure' ? 'failure'
       : 'in_progress';
 
-    // Find the last successful deployment to use its SHA as the baseline for
-    // commit comparisons (pendingUatItems, unreleasedCommits). When the latest
-    // deploy failed, this will be an older SHA, surfacing the real pending queue.
-    let successfulDeploy = latestConclusion === 'success' ? latestDeploy : null;
-    if (!successfulDeploy) {
-      for (const dep of deployments.slice(1)) {
-        const sRes = await fetch(`${dep.statuses_url}?per_page=1`, { headers: getHeaders(token) });
-        if (!sRes.ok) continue;
-        const ss = (await sRes.json()) as GitHubDeploymentStatus[];
-        if (ss[0]?.state === 'success') {
-          successfulDeploy = dep;
+    // Find the last successful run to use its SHA for commit comparisons.
+    // When the latest run failed or is in progress, we use an older successful run
+    // so unreleasedCommits reflects the real pending queue.
+    let successfulRun = latestConclusion === 'success' ? latestRun : null;
+    if (!successfulRun) {
+      for (const run of data.workflow_runs.slice(1)) {
+        if (run.conclusion === 'success') {
+          successfulRun = run;
           break;
         }
       }
     }
 
-    // version = last successful SHA (for comparison); falls back to latest
-    // deploy SHA when no successful deploy exists yet.
-    const baseDeploy = successfulDeploy ?? latestDeploy;
-    const version = baseDeploy.sha.substring(0, 7);
-    const runAt = latestStatus?.updated_at ?? latestDeploy.updated_at;
+    // Use the successful run's commit SHA for version (short form for display).
+    const baseRun = successfulRun ?? latestRun;
+    const version = baseRun.head_sha.substring(0, 7);
 
-    const workflowFile = RELEASE_ONLY_REPOS.has(repo as any)
-      ? 'release.yml'
-      : environment === 'uat' ? 'deploy-uat.yml' : 'deploy-prod.yml';
     return {
       version,
-      runAt,
+      runAt: latestRun.updated_at,
       runUrl: `https://github.com/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}`,
       conclusion: latestConclusion,
     };
@@ -153,27 +143,16 @@ export async function checkCIStatus(
   repo: string
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
-    // Query the ci.yml workflow directly - always prefer success, fall back to most recent
+    // Fetch all runs and filter for 'ci' workflow
     const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=30`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/runs?branch=main&per_page=50`,
       { headers: getHeaders(token) }
     );
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
     const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string })[] };
 
-    // Get first successful run, or fall back to first run
-    let successful = null;
-    let fallback = null;
-
-    for (const run of data.workflow_runs) {
-      if (!fallback) fallback = run;
-      if (run.conclusion === 'success') {
-        successful = run;
-        break;
-      }
-    }
-
-    const run = successful || fallback;
+    // Find the first 'ci' workflow run
+    const run = data.workflow_runs.find(r => r.name === 'ci');
     if (!run) return { passing: false, runUrl: null, conclusion: null, status: null };
 
     return {
