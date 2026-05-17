@@ -6,6 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY . .
+COPY certs/ ./certs/
 
 RUN npm run build
 
