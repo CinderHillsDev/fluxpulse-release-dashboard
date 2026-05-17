@@ -153,35 +153,29 @@ export async function checkCIStatus(
   repo: string
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
+    // Query the ci.yml workflow directly - always prefer success, fall back to most recent
     const res = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/runs?per_page=20`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/ci.yml/runs?branch=main&per_page=30`,
       { headers: getHeaders(token) }
     );
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
-    const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string; created_at: string; head_branch: string; name: string })[] };
+    const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string })[] };
 
-    // Find the first successful run on main with name 'ci'
-    // If no successful run, fall back to first run on main
-    let selectedRun = null;
+    // Get first successful run, or fall back to first run
+    let successful = null;
+    let fallback = null;
 
     for (const run of data.workflow_runs) {
-      if (run.head_branch !== 'main') continue;
-      if (run.name !== 'ci' && run.name !== 'CI') continue;
-
-      // Prefer successful conclusion
+      if (!fallback) fallback = run;
       if (run.conclusion === 'success') {
-        selectedRun = run;
+        successful = run;
         break;
-      }
-
-      // Fall back to first run if no successful one found yet
-      if (!selectedRun) {
-        selectedRun = run;
       }
     }
 
-    const run = selectedRun;
+    const run = successful || fallback;
     if (!run) return { passing: false, runUrl: null, conclusion: null, status: null };
+
     return {
       passing: run.conclusion === 'success',
       runUrl: run.html_url,
