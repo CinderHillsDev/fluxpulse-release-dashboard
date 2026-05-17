@@ -226,8 +226,8 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                 ) : !NO_DEPLOY_REPOS.has(repo.name as any) ? (
                   <>
                     {(repo.unreleasedCommits > 0 || repo.uatDeploy?.conclusion === 'failure') && (
-                      <form method="POST" action="/api/dispatch" class="inline-block" onsubmit="window.submitDispatch(this)">
-                        <input type="hidden" name="astro.csrf" value="development-csrf-token-12345678" />
+                      <form method="POST" action="/api/dispatch" class="inline-block" onsubmit="return window.submitDispatch(event)">
+                        <input type="hidden" name="astro.csrf" value={csrfToken} />
                         <input type="hidden" name="repo" value={repo.name} />
                         <button
                           type="submit"
@@ -239,8 +239,8 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                       </form>
                     )}
                     {repo.syncState === 'uat-ahead' && (
-                      <form method="POST" action="/api/dispatch" class="inline-block" onsubmit="window.submitDispatch(this)">
-                        <input type="hidden" name="astro.csrf" value="development-csrf-token-12345678" />
+                      <form method="POST" action="/api/dispatch" class="inline-block" onsubmit="return window.submitDispatch(event)">
+                        <input type="hidden" name="astro.csrf" value={csrfToken} />
                         <input type="hidden" name="repo" value={repo.name} />
                         <input type="hidden" name="workflow" value="deploy-prod" />
                         <button

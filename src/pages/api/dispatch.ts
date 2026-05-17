@@ -84,9 +84,9 @@ export const POST: APIRoute = async ({ request }) => {
         : dispatchRes.status === 422 ? 'dispatch_unprocessable'
         : 'dispatch_failed';
       console.error(`dispatch failed ${dispatchRes.status} for ${repo}/${workflowFile}:`, detail);
-      return new Response(null, {
-        status: 302,
-        headers: { Location: `${redirectBase}?dispatch_error=${code}&repo=${encodeURIComponent(repo)}` },
+      return new Response(JSON.stringify({ ok: false, error: code, repo }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
@@ -107,20 +107,15 @@ export const POST: APIRoute = async ({ request }) => {
       // fall through to workflow page link
     }
 
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: `${redirectBase}?dispatch_ok=${encodeURIComponent(repo)}&run_url=${encodeURIComponent(runUrl)}`,
-      },
+    return new Response(JSON.stringify({ ok: true, repo, runUrl }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    const redirectBase = request.headers.get('Referer')
-      ? new URL(request.headers.get('Referer')!).pathname
-      : '/';
     console.error('dispatch error:', error);
-    return new Response(null, {
-      status: 302,
-      headers: { Location: `${redirectBase}?dispatch_error=dispatch_failed` },
+    return new Response(JSON.stringify({ ok: false, error: 'dispatch_failed' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 };
