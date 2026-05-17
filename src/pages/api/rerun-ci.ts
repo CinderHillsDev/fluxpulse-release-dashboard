@@ -75,12 +75,14 @@ export const POST: APIRoute = async ({ request }) => {
 
     const latestRun = runsData.workflow_runs[0];
     const workflowPath = latestRun.path;
+    // Extract just the filename from the full path (e.g., ".github/workflows/ci.yml" -> "ci.yml")
+    const workflowFile = workflowPath.split('/').pop() || workflowPath;
 
-    console.log(`[rerun-ci] Triggering fresh workflow for ${repo} (workflow: ${workflowPath})`);
+    console.log(`[rerun-ci] Triggering fresh workflow for ${repo} (workflow: ${workflowFile})`);
 
     // Trigger a fresh workflow run via workflow_dispatch on main
     const dispatchRes = await fetch(
-      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowPath}/dispatches`,
+      `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}/dispatches`,
       {
         method: 'POST',
         headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard),
@@ -109,7 +111,7 @@ export const POST: APIRoute = async ({ request }) => {
     let runUrl = `https://github.com/${GH_OWNER}/${repo}/actions`;
     try {
       const newRunsRes = await fetch(
-        `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowPath}/runs?per_page=1`,
+        `${GH_API}/repos/${GH_OWNER}/${repo}/actions/workflows/${workflowFile}/runs?per_page=1`,
         { headers: getHeaders(env.CF_GH_PAT_FluxPulseReleaseDashboard) }
       );
       if (newRunsRes.ok) {
