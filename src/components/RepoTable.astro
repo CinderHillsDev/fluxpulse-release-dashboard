@@ -250,20 +250,20 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                   )
                 ) : !NO_DEPLOY_REPOS.has(repo.name as any) ? (
                   <>
-                    {(repo.unreleasedCommits > 0 || repo.uatDeploy?.conclusion === 'failure') && (
+                    {(repo.unreleasedCommits > 0 || repo.uatDeploy?.conclusion === 'failure') && repo.uatDeploy?.conclusion !== 'in_progress' && (
                       <form method="POST" action="/api/dispatch" class="inline-block" onsubmit="return window.submitDispatch(event)">
                         <input type="hidden" name="astro.csrf" value={csrfToken} />
                         <input type="hidden" name="repo" value={repo.name} />
                         <button
                           type="submit"
-                          class="w-20 px-2.5 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition text-center"
+                          class="w-24 px-2.5 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition text-center"
                           title={repo.uatDeploy?.conclusion === 'failure' ? 'Last UAT deploy failed — re-dispatch deploy-uat.yml' : 'Dispatch deploy-uat.yml on this repo'}
                         >
-                          {repo.uatDeploy?.conclusion === 'failure' ? 'Retry UAT' : 'Release'}
+                          {repo.uatDeploy?.conclusion === 'failure' ? 'Retry UAT' : 'Release to UAT'}
                         </button>
                       </form>
                     )}
-                    {repo.syncState === 'uat-ahead' && (
+                    {repo.syncState === 'uat-ahead' && repo.prodDeploy?.conclusion !== 'in_progress' && (
                       <form method="POST" action="/api/dispatch" class="inline-block" onsubmit="return window.submitDispatch(event)">
                         <input type="hidden" name="astro.csrf" value={csrfToken} />
                         <input type="hidden" name="repo" value={repo.name} />
