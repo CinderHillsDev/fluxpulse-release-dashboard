@@ -150,9 +150,9 @@ export async function checkCIStatus(
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
     const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string })[] };
 
-    // Find the most recent CI run, sort by created_at desc
+    // Find the most recent CI run (case-insensitive), sort by created_at desc
     const ciRuns = data.workflow_runs
-      .filter(r => r.name === 'ci')
+      .filter(r => r.name.toLowerCase() === 'ci')
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     if (ciRuns.length === 0) return { passing: false, runUrl: null, conclusion: null, status: null };
