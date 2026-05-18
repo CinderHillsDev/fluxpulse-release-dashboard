@@ -105,14 +105,49 @@ const batchError = url.searchParams.get('batch_error');
 
     <RepoTable repos={repos} />
 
+    <style>
+      @keyframes btn-spin {
+        to { transform: rotate(360deg); }
+      }
+      .btn-spinner {
+        display: inline-block;
+        width: 0.7em;
+        height: 0.7em;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: btn-spin 0.6s linear infinite;
+        vertical-align: middle;
+        margin-right: 0.4em;
+      }
+      button.refreshing {
+        animation: btn-spin 0.6s linear infinite;
+      }
+    </style>
+
     <script>
+      function setButtonLoading(btn, loadingText) {
+        btn.disabled = true;
+        btn.dataset.originalText = btn.innerHTML;
+        btn.innerHTML = `<span class="btn-spinner"></span> ${loadingText}`;
+      }
+
+      function restoreButton(btn) {
+        btn.disabled = false;
+        btn.innerHTML = btn.dataset.originalText;
+      }
+
       window.submitDispatch = async function(event) {
         event.preventDefault();
         const form = event.target;
         const repo = form.elements.repo?.value;
         const btn = form.querySelector('button[type="submit"]');
 
-        if (btn) btn.disabled = true;
+        if (btn) {
+          const btnText = btn.textContent.trim();
+          const loadingText = btnText.includes('Deploy') ? 'Deploying…' : btnText.includes('Retry') ? 'Retrying…' : 'Releasing…';
+          setButtonLoading(btn, loadingText);
+        }
 
         try {
           const res = await fetch(form.action, {
@@ -159,7 +194,7 @@ const batchError = url.searchParams.get('batch_error');
             main.insertBefore(banner, main.firstChild);
           }
         } finally {
-          if (btn) btn.disabled = false;
+          if (btn) restoreButton(btn);
         }
         return false;
       };
@@ -170,7 +205,9 @@ const batchError = url.searchParams.get('batch_error');
         const repo = form.elements.repo?.value;
         const btn = form.querySelector('button[type="submit"]');
 
-        if (btn) btn.disabled = true;
+        if (btn) {
+          setButtonLoading(btn, 'Running…');
+        }
 
         try {
           const res = await fetch(form.action, {
@@ -211,21 +248,27 @@ const batchError = url.searchParams.get('batch_error');
             main.insertBefore(banner, main.firstChild);
           }
         } finally {
-          if (btn) btn.disabled = false;
+          if (btn) restoreButton(btn);
         }
         return false;
       };
 
       window.refreshRepo = async function(repoName) {
         const btn = document.querySelector(`button[data-refresh="${repoName}"]`);
-        if (btn) btn.disabled = true;
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add('refreshing');
+        }
         try {
           const res = await fetch(`/api/repo-status?repo=${encodeURIComponent(repoName)}`);
           if (res.ok) {
             location.reload();
           }
         } finally {
-          if (btn) btn.disabled = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('refreshing');
+          }
         }
       };
 
