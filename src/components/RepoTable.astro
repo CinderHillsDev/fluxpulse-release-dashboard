@@ -216,7 +216,7 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                     <input type="hidden" name="repo" value={repo.name} />
                     <button
                       type="submit"
-                      class="w-20 px-2.5 py-1 text-xs font-medium bg-orange-600 text-white rounded hover:bg-orange-700 transition text-center"
+                      class="w-24 px-2.5 py-1 text-xs font-medium bg-orange-600 text-white rounded hover:bg-orange-700 transition text-center"
                       title={`CI ${repo.ciConclusion} — retry the workflow`}
                     >
                       Retry CI
@@ -228,7 +228,7 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                     <input type="hidden" name="repo" value={repo.name} />
                     <button
                       type="submit"
-                      class="w-20 px-2.5 py-1 text-xs font-medium bg-slate-400 text-white rounded hover:bg-slate-500 transition text-center"
+                      class="w-24 px-2.5 py-1 text-xs font-medium bg-slate-400 text-white rounded hover:bg-slate-500 transition text-center"
                       title="Run CI workflow on demand"
                     >
                       Run CI
@@ -299,7 +299,7 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                   type="button"
                   onclick={`window.refreshRepo('${repo.name}')`}
                   data-refresh={repo.name}
-                  class="px-2.5 py-1 text-xs font-medium bg-slate-300 text-slate-700 rounded hover:bg-slate-400 transition"
+                  class="w-24 px-2.5 py-1 text-xs font-medium bg-slate-300 text-slate-700 rounded hover:bg-slate-400 transition text-center"
                   title="Refresh this repo's status"
                 >
                   ↻
