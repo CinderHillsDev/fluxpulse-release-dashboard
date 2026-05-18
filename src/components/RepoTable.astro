@@ -274,22 +274,32 @@ function deployDot(conclusion: RepoStatus['uatDeploy']): string {
                         </button>
                       </form>
                     )}
-                    {(repo.syncState === 'uat-ahead' || repo.prodDeploy?.conclusion === 'in_progress') && (
+                    {(repo.syncState === 'uat-ahead' || repo.prodDeploy?.conclusion === 'in_progress' || repo.uatDeploy?.conclusion === 'in_progress') && (
                       <form method="POST" action="/api/dispatch" class="inline-block" onsubmit="return window.submitDispatch(event)">
                         <input type="hidden" name="astro.csrf" value={csrfToken} />
                         <input type="hidden" name="repo" value={repo.name} />
                         <input type="hidden" name="workflow" value="deploy-prod" />
                         <button
                           type="submit"
-                          disabled={repo.prodDeploy?.conclusion === 'in_progress'}
+                          disabled={repo.prodDeploy?.conclusion === 'in_progress' || repo.uatDeploy?.conclusion === 'in_progress'}
                           class={`w-24 px-2.5 py-1 text-xs font-medium rounded text-center transition ${
-                            repo.prodDeploy?.conclusion === 'in_progress'
+                            repo.prodDeploy?.conclusion === 'in_progress' || repo.uatDeploy?.conclusion === 'in_progress'
                               ? 'bg-slate-400 text-white cursor-not-allowed opacity-75'
                               : 'bg-green-600 text-white hover:bg-green-700'
                           }`}
-                          title={repo.prodDeploy?.conclusion === 'in_progress' ? 'Prod deploy in progress' : 'Dispatch deploy-prod.yml on this repo'}
+                          title={
+                            repo.uatDeploy?.conclusion === 'in_progress'
+                              ? 'Wait for UAT release to complete'
+                              : repo.prodDeploy?.conclusion === 'in_progress'
+                              ? 'Prod deploy in progress'
+                              : 'Dispatch deploy-prod.yml on this repo'
+                          }
                         >
-                          {repo.prodDeploy?.conclusion === 'in_progress' ? 'Prod Deploy in progress' : 'Deploy Prod'}
+                          {repo.uatDeploy?.conclusion === 'in_progress'
+                            ? 'Waiting for UAT'
+                            : repo.prodDeploy?.conclusion === 'in_progress'
+                            ? 'Prod Deploy in progress'
+                            : 'Deploy Prod'}
                         </button>
                       </form>
                     )}
