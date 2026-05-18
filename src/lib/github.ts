@@ -143,7 +143,6 @@ export async function checkCIStatus(
   repo: string
 ): Promise<{ passing: boolean; runUrl: string | null; conclusion: string | null; status: string | null }> {
   try {
-    // Fetch all runs and filter for 'ci' workflow
     const res = await fetch(
       `${GH_API}/repos/${GH_OWNER}/${repo}/actions/runs?branch=main&per_page=50`,
       { headers: getHeaders(token) }
@@ -151,10 +150,14 @@ export async function checkCIStatus(
     if (!res.ok) return { passing: false, runUrl: null, conclusion: null, status: null };
     const data = (await res.json()) as { workflow_runs: (GitHubWorkflowRun & { html_url: string })[] };
 
-    // Find the first 'ci' workflow run
-    const run = data.workflow_runs.find(r => r.name === 'ci');
-    if (!run) return { passing: false, runUrl: null, conclusion: null, status: null };
+    // Find the most recent CI run, sort by created_at desc
+    const ciRuns = data.workflow_runs
+      .filter(r => r.name === 'ci')
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+    if (ciRuns.length === 0) return { passing: false, runUrl: null, conclusion: null, status: null };
+
+    const run = ciRuns[0];
     return {
       passing: run.conclusion === 'success',
       runUrl: run.html_url,
