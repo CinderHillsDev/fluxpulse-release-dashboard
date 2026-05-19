@@ -11,7 +11,7 @@ permissions:
 jobs:
   deploy:
     name: Deploy to Cloudflare Workers
-    runs-on: [self-hosted, colo]
+    runs-on: [self-hosted, linux, colo]
     environment: production
     steps:
       - uses: actions/checkout@v4
